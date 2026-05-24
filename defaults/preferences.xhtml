@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Reference Validator Preferences</title>
+</head>
+<body>
+    <div class="zotero-preferences-pane">
+        <h2>Scholarly Source Credentials</h2>
+        <div class="prefs-section">
+            <label>Crossref Email (Polite Pool): <input type="text" data-pref="sources.crossref.email" /></label><br/>
+            <label>OpenAlex Email (Polite Pool): <input type="text" data-pref="sources.openalex.email" /></label><br/>
+            <label>Semantic Scholar API Key: <input type="password" data-pref="sources.semanticscholar.key" /></label><br/>
+        </div>
+
+        <h2>Validation Behavior</h2>
+        <div class="prefs-section">
+            <label>Minimum agreeing primary sources for VERIFIED: 
+                <input type="number" min="2" max="4" data-pref="behavior.min_sources" value="2"/>
+            </label><br/>
+            <label>Include LLM-assisted semantic verification (Warning: sends metadata to LLM): 
+                <input type="checkbox" data-pref="behavior.use_llm" />
+            </label><br/>
+            <label>Re-validation freshness window (days): 
+                <input type="number" min="1" max="365" data-pref="behavior.freshness_days" value="90"/>
+            </label><br/>
+            <label>Timeout per source (seconds):
+                <input type="number" min="1" max="60" data-pref="behavior.timeout_sec" value="10"/>
+            </label><br/>
+        </div>
+
+        <h2>LLM Credentials</h2>
+        <div class="prefs-section">
+            <label>OpenAI API Key: <input type="password" data-pref="llm.openai.key" /></label><br/>
+            <label>Anthropic API Key: <input type="password" data-pref="llm.anthropic.key" /></label><br/>
+            <label>Google Gemini API Key: <input type="password" data-pref="llm.gemini.key" /></label><br/>
+        </div>
+
+        <h2>Privacy</h2>
+        <div class="prefs-section">
+            <p><strong>Note:</strong> Items validated are sent to the configured scholarly sources (and LLM if enabled).</p>
+            <button id="clear-cache-btn">Clear Source Cache</button>
+        </div>
+    </div>
+</body>
+</html>
