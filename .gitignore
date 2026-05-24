@@ -1,0 +1,42 @@
+# build artifacts
+node_modules/
+dist/
+build/
+*.xpi
+*.tgz
+*.log
+
+# editor and OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# environment and secrets
+.env
+.env.*
+*.key
+*.pem
+
+# AI tool artifacts (must not be committed)
+.claude/
+.gemini/
+.cursor/
+.aider*
+.continue/
+
+# notes, todos, prompts (must not be committed)
+TODO.md
+TODO.txt
+todo.md
+todo.txt
+NOTES.md
+notes.md
+PROMPT.md
+prompt.md
+prompts/
+*.prompt
+*.prompt.md
+scratch/
+.scratch/
