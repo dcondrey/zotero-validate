@@ -8,6 +8,7 @@ if (!fs.existsSync(outDir)) {
   fs.mkdirSync(outDir, { recursive: true });
 }
 
+// Build bootstrap
 esbuild.build({
   entryPoints: ['src/bootstrap.ts'],
   bundle: true,
@@ -17,19 +18,28 @@ esbuild.build({
   globalName: 'ZoteroReferenceValidator',
 }).catch(() => process.exit(1));
 
-// Copy static assets
-const assets = ['manifest.json'];
+// Copy static assets to build root
+const assets = [
+  'manifest.json',
+  'chrome.manifest',
+  'defaults/preferences.xhtml',
+  'defaults/preferences.js',
+  'defaults/preferences.css'
+];
+
 for (const asset of assets) {
   if (fs.existsSync(asset)) {
-    fs.copyFileSync(asset, path.join(outDir, asset));
+    const fileName = path.basename(asset);
+    fs.copyFileSync(asset, path.join(outDir, fileName));
   }
 }
 
-// Copy prefs.js
+// Copy default preferences
 const defaultsDir = path.join(outDir, 'defaults', 'preferences');
 if (!fs.existsSync(defaultsDir)) {
   fs.mkdirSync(defaultsDir, { recursive: true });
 }
-if (fs.existsSync('defaults/preferences/prefs.js')) {
-    fs.copyFileSync('defaults/preferences/prefs.js', path.join(defaultsDir, 'prefs.js'));
+const prefsFile = 'defaults/preferences/prefs.js';
+if (fs.existsSync(prefsFile)) {
+    fs.copyFileSync(prefsFile, path.join(defaultsDir, 'prefs.js'));
 }

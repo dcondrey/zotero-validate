@@ -1,0 +1,18 @@
+.zotero-preferences-pane {
+    padding: 1em;
+}
+
+.prefs-section {
+    margin-bottom: 1.5em;
+    padding-left: 1em;
+}
+
+.prefs-section label {
+    display: block;
+    margin-bottom: 0.5em;
+}
+
+.prefs-section input[type="text"],
+.prefs-section input[type="password"] {
+    width: 300px;
+}

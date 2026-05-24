@@ -11,8 +11,5 @@
   "name": "Reference Validator",
   "description": "Validates reference metadata against authoritative scholarly sources.",
   "author": "Gemini",
-  "homepageURL": "https://example.com",
-  "icons": {
-    "default": "icon.png"
-  }
+  "homepageURL": "https://example.com"
 }
