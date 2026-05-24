@@ -3,6 +3,7 @@ import { CrossrefAdapter } from './adapters/crossref';
 import { OpenAlexAdapter } from './adapters/openalex';
 import { compareRecords, ZoteroItemMock } from './comparison';
 import { classify, ClassificationResult } from './classifier';
+import { LLMClient } from './llm';
 
 export class Orchestrator {
     private adapters: SourceAdapter[] = [
@@ -11,8 +12,11 @@ export class Orchestrator {
     ];
     private activeRequests = 0;
     private maxConcurrent = 8; // From prefs later
+    private llmClient: LLMClient;
 
-    constructor(private getPrefs: () => PluginPrefs) {}
+    constructor(private getPrefs: () => PluginPrefs) {
+        this.llmClient = new LLMClient(getPrefs);
+    }
 
     private async limitConcurrency<T>(task: () => Promise<T>): Promise<T> {
         while (this.activeRequests >= this.maxConcurrent) {
@@ -66,6 +70,7 @@ export class Orchestrator {
         const identifier = this.extractIdentifier(item);
         const diffsBySource = new Map<string, { tier: number, diffs: FieldDiff[], hasStrongIdentifierMatch: boolean }>();
         const title = item.getField('title');
+        const allCandidates: CanonicalRecord[] = [];
         
         const promises = this.adapters.map(async (adapter) => {
             if (!adapter.isConfigured(prefs)) return;
@@ -89,6 +94,7 @@ export class Orchestrator {
                     }
 
                     if (record) {
+                        allCandidates.push(record);
                         const diffs = compareRecords(item, record);
                         diffsBySource.set(adapter.id, {
                             tier: adapter.tier,
@@ -105,7 +111,15 @@ export class Orchestrator {
         await Promise.all(promises);
 
         const minSources = prefs['behavior.min_sources'] || 2;
-        const result = classify(diffsBySource, minSources);
+        let result = classify(diffsBySource, minSources);
+
+        // LLM Adjudication (Step 6)
+        if (result.status === 'FLAGGED' && prefs['behavior.use_llm']) {
+             const llmResult = await this.llmClient.adjudicate(item, allCandidates);
+             if (llmResult) {
+                 result = llmResult;
+             }
+        }
 
         await this.persistResult(item, result);
         return result;
