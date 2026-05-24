@@ -1,3 +1,6 @@
+import { Orchestrator } from './orchestrator';
+import { showResultsWindow } from './ui';
+
 export function registerMenu() {
     if (typeof Zotero === 'undefined') return;
 
@@ -9,6 +12,24 @@ export function registerMenu() {
     const menuPopup = doc.getElementById('zotero-itemmenu');
     if (!menuPopup) return;
 
+    const orchestrator = new Orchestrator(() => {
+        // ASSUMPTION: Preferences getter
+        return {
+            'sources.crossref.enabled': Zotero.Prefs.get('extensions.zotero.reference-validator.sources.crossref.enabled'),
+            'sources.openalex.enabled': Zotero.Prefs.get('extensions.zotero.reference-validator.sources.openalex.enabled'),
+            'behavior.min_sources': Zotero.Prefs.get('extensions.zotero.reference-validator.behavior.min_sources')
+        };
+    });
+
+    const runValidation = async (items: any[], force: boolean) => {
+        const results = [];
+        for (const item of items) {
+            const result = await orchestrator.validateItem(item, force);
+            results.push({ item, result });
+        }
+        showResultsWindow(results);
+    };
+
     const menuItem = doc.createXULElement('menuitem');
     menuItem.setAttribute('id', 'zotero-reference-validator-menu-item');
     menuItem.setAttribute('label', 'Validate Reference');
@@ -17,9 +38,8 @@ export function registerMenu() {
     menuItem.addEventListener('command', async (e: Event) => {
         const items = Zotero.getActiveZoteroPane().getSelectedItems();
         if (items.length > 0) {
-            // Placeholder: Call orchestrator
             Zotero.debug('Validate Reference invoked for ' + items.length + ' items');
-            // orchestrateValidation(items);
+            runValidation(items, false);
         }
     });
 
@@ -34,7 +54,7 @@ export function registerMenu() {
         const items = Zotero.getActiveZoteroPane().getSelectedItems();
         if (items.length > 0) {
             Zotero.debug('Force Validate Reference invoked');
-            // orchestrateValidation(items, { force: true });
+            runValidation(items, true);
         }
     });
 
