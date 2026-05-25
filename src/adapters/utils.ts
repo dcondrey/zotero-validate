@@ -69,6 +69,6 @@ export function parseDateYear(dateStr: any): number | undefined {
 export function parseTimestampYear(ts: any): number | undefined {
   if (typeof ts !== "number" || ts <= 0) return undefined;
   const ms = ts < 1e12 ? ts * 1000 : ts;
-  const year = new Date(ms).getFullYear();
+  const year = new Date(ms).getUTCFullYear();
   return year >= 1000 && year <= 9999 ? year : undefined;
 }

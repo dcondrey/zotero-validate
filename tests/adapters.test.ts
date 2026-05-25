@@ -237,7 +237,7 @@ describe("OpenReviewAdapter", () => {
       content: { title: { value: "Test" } },
       tcdate: 1672531200,
     });
-    expect(record.year).toBe(2022);
+    expect(record.year).toBe(2023);
   });
 
   it("should handle missing content fields", () => {
