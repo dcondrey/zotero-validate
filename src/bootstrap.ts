@@ -1,8 +1,8 @@
-import { registerPreferences } from "./preferences";
+import { registerPreferences, unregisterPreferences } from "./preferences";
 import { MenuManager } from "./menu";
 
 let menuManager: MenuManager | null = null;
-let windowListenerID: string | null = null;
+const PLUGIN_ID = "reference-validator@example.com";
 
 export function install() {
   Zotero.debug("ReferenceValidator: install");
@@ -16,31 +16,32 @@ export function startup({ id, version, resourceURI, rootURI }: any) {
 
   const windows = Zotero.getMainWindows();
   for (const win of windows) {
-    menuManager.addToWindow(win);
+    if (win.ZoteroPane) {
+      menuManager.addToWindow(win);
+    }
   }
 
-  windowListenerID = Zotero.WindowWatcher.registerCallback(
-    (win: any, type: string) => {
-      if (type === "load") {
-        menuManager?.addToWindow(win);
-      }
-    },
-  );
+  Zotero.WindowWatcher.registerCallback(PLUGIN_ID, (win: any, type: string) => {
+    if (type === "load" && win.ZoteroPane) {
+      menuManager?.addToWindow(win);
+    }
+  });
 }
 
 export function shutdown(reason: any) {
   Zotero.debug("ReferenceValidator: shutdown");
 
-  if (windowListenerID) {
-    Zotero.WindowWatcher.deregisterCallback(windowListenerID);
-    windowListenerID = null;
-  }
+  Zotero.WindowWatcher.deregisterCallback(PLUGIN_ID);
 
   const windows = Zotero.getMainWindows();
   for (const win of windows) {
-    menuManager?.removeFromWindow(win);
+    if (win.ZoteroPane) {
+      menuManager?.removeFromWindow(win);
+    }
   }
+
   menuManager = null;
+  unregisterPreferences();
 }
 
 export function uninstall(reason: any) {

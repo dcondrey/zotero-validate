@@ -20,8 +20,8 @@ const ALL_DISABLED: Record<string, any> = {
 beforeEach(() => {
   global.Zotero = {
     debug: vi.fn(),
-    DB: {
-      executeTransaction: vi.fn(async (fn: () => Promise<void>) => fn()),
+    Items: {
+      get: vi.fn(() => null),
     },
   };
   global.fetch = vi.fn(() =>

@@ -4,11 +4,14 @@ declare const Zotero: {
   getMainWindows(): any[];
   getActiveZoteroPane(): any;
   WindowWatcher: {
-    registerCallback(callback: (win: any, type: string) => void): string;
+    registerCallback(
+      id: string,
+      callback: (win: any, type: string) => void,
+    ): void;
     deregisterCallback(id: string): void;
   };
-  DB: {
-    executeTransaction(fn: () => Promise<void>): Promise<void>;
+  Items: {
+    get(id: number): any;
   };
   Prefs: {
     get(key: string): any;
@@ -16,6 +19,7 @@ declare const Zotero: {
   };
   PreferencePanes: {
     register(options: any): void;
+    unregister(pluginID: string): void;
   };
   ProgressWindow: new (options?: any) => {
     changeHeadline(text: string): void;

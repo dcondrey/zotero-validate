@@ -26,6 +26,7 @@ class TokenBucketRateLimiter {
   private activeConnections = 0;
   private tokens: number;
   private lastRefill: number = Date.now();
+  private isProcessing = false;
 
   constructor(
     private perSecond: number,
@@ -49,7 +50,7 @@ class TokenBucketRateLimiter {
 
   release(): void {
     this.activeConnections = Math.max(0, this.activeConnections - 1);
-    this.processQueue();
+    this.scheduleProcess();
   }
 
   private refill() {
@@ -64,7 +65,9 @@ class TokenBucketRateLimiter {
     }
   }
 
-  private processQueue() {
+  private scheduleProcess() {
+    if (this.isProcessing || this.queue.length === 0) return;
+
     this.refill();
     while (
       this.queue.length > 0 &&
@@ -76,15 +79,15 @@ class TokenBucketRateLimiter {
       const next = this.queue.shift();
       if (next) next();
     }
-    if (this.queue.length > 0) {
-      this.scheduleProcess();
-    }
-  }
 
-  private scheduleProcess() {
     if (this.queue.length > 0) {
-      const delay = Math.max(50, (1 / this.perSecond) * 1000);
-      setTimeout(() => this.processQueue(), delay);
+      this.isProcessing = true;
+      const tokensNeeded = 1 - this.tokens;
+      const delay = Math.max(50, (tokensNeeded / this.perSecond) * 1000);
+      setTimeout(() => {
+        this.isProcessing = false;
+        this.scheduleProcess();
+      }, delay);
     }
   }
 }
@@ -343,31 +346,24 @@ export class Orchestrator {
     const itemId = String(item.id || "");
     try {
       Orchestrator.programmaticMutations.add(itemId);
-      await Zotero.DB.executeTransaction(async () => {
-        // 1. Force Zotero to pull the current string directly from the database disk cache.
-        // Passing true parameters tells Zotero to bypass stale, un-saved client UI object states.
-        let extra = item.getField("extra", true, true) || "";
 
-        // 2. Process and sanitize the fresh extra field data
-        extra = extra
-          .split("\n")
-          .filter((line: string) => !line.startsWith("ReferenceValidator:"))
-          .join("\n")
-          .trim();
-        extra =
-          `${extra}\nReferenceValidator: ${JSON.stringify(report)}`.trim();
+      const freshItem = Zotero.Items.get(item.id) || item;
+      let extra = freshItem.getField("extra") || "";
+      extra = extra
+        .split("\n")
+        .filter((line: string) => !line.startsWith("ReferenceValidator:"))
+        .join("\n")
+        .trim();
+      extra = `${extra}\nReferenceValidator: ${JSON.stringify(report)}`.trim();
 
-        // 3. Batch process tag removals/additions safely inside the transaction timeline
-        const oldTags = item.getTags().map((t: any) => t.tag);
-        for (const t of oldTags) {
-          if (valTags.includes(t)) item.removeTag(t);
-        }
+      const oldTags = freshItem.getTags().map((t: any) => t.tag);
+      for (const t of oldTags) {
+        if (valTags.includes(t)) freshItem.removeTag(t);
+      }
 
-        item.addTag(newTag);
-        item.setField("extra", extra);
-
-        await item.saveTx();
-      });
+      freshItem.addTag(newTag);
+      freshItem.setField("extra", extra);
+      await freshItem.saveTx();
     } catch (e) {
       Zotero.debug(
         `ReferenceValidator: Failed to persist result cleanly - ${e}`,
