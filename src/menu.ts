@@ -1,82 +1,157 @@
-import { Orchestrator } from './orchestrator';
-import { showResultsWindow } from './ui';
+import { Orchestrator } from "./orchestrator";
+import { showResultsWindow } from "./ui";
 
-export function registerMenu() {
-    if (typeof Zotero === 'undefined') return;
+const PREF_BRANCH = "extensions.zotero.reference-validator.";
+const PREF_KEYS = [
+  "sources.crossref.enabled",
+  "sources.crossref.email",
+  "sources.openalex.enabled",
+  "sources.openalex.email",
+  "sources.semanticscholar.enabled",
+  "sources.semanticscholar.key",
+  "sources.arxiv.enabled",
+  "sources.pubmed.enabled",
+  "sources.dblp.enabled",
+  "sources.openreview.enabled",
+  "sources.aclanthology.enabled",
+  "sources.openlibrary.enabled",
+  "behavior.min_sources",
+  "behavior.use_llm",
+  "behavior.freshness_days",
+  "behavior.timeout_sec",
+  "behavior.max_concurrent",
+  "llm.openai.key",
+  "llm.anthropic.key",
+  "llm.gemini.key",
+];
 
-    // ASSUMPTION: Zotero 10 menu registration. Using Zotero.getMainWindow().document
-    const win = Zotero.getMainWindow();
-    if (!win) return;
+export class MenuManager {
+  private orchestrator: Orchestrator;
 
+  constructor() {
+    this.orchestrator = new Orchestrator(() => {
+      const prefs: Record<string, any> = {};
+      for (const key of PREF_KEYS) {
+        prefs[key] = Zotero.Prefs.get(PREF_BRANCH + key);
+      }
+      return prefs;
+    });
+  }
+
+  addToWindow(win: any) {
     const doc = win.document;
-    const menuPopup = doc.getElementById('zotero-itemmenu');
-    if (!menuPopup) return;
+    const menuPopup = doc.getElementById("zotero-itemmenu");
+    if (
+      !menuPopup ||
+      doc.getElementById("zotero-reference-validator-menu-item")
+    )
+      return;
 
-    const orchestrator = new Orchestrator(() => {
-        // ASSUMPTION: Preferences getter
-        return {
-            'sources.crossref.enabled': Zotero.Prefs.get('extensions.zotero.reference-validator.sources.crossref.enabled'),
-            'sources.openalex.enabled': Zotero.Prefs.get('extensions.zotero.reference-validator.sources.openalex.enabled'),
-            'behavior.min_sources': Zotero.Prefs.get('extensions.zotero.reference-validator.behavior.min_sources')
-        };
+    const menuItem = doc.createXULElement("menuitem");
+    menuItem.setAttribute("id", "zotero-reference-validator-menu-item");
+    menuItem.setAttribute("label", "Validate Reference");
+    menuItem.addEventListener("command", async () => {
+      const items = Zotero.getActiveZoteroPane().getSelectedItems();
+      if (items.length > 0) {
+        Zotero.debug(
+          "Validate Reference invoked for " + items.length + " items",
+        );
+        this.runValidation(items, false);
+      }
     });
-
-    const runValidation = async (items: any[], force: boolean) => {
-        const results = [];
-        for (const item of items) {
-            const result = await orchestrator.validateItem(item, force);
-            results.push({ item, result });
-        }
-        showResultsWindow(results);
-    };
-
-    const menuItem = doc.createXULElement('menuitem');
-    menuItem.setAttribute('id', 'zotero-reference-validator-menu-item');
-    menuItem.setAttribute('label', 'Validate Reference');
-    
-    // Disable if not enough metadata
-    menuItem.addEventListener('command', async (e: Event) => {
-        const items = Zotero.getActiveZoteroPane().getSelectedItems();
-        if (items.length > 0) {
-            Zotero.debug('Validate Reference invoked for ' + items.length + ' items');
-            runValidation(items, false);
-        }
-    });
-
     menuPopup.appendChild(menuItem);
 
-    // Force Validate Menu Item
-    const forceMenuItem = doc.createXULElement('menuitem');
-    forceMenuItem.setAttribute('id', 'zotero-reference-validator-force-menu-item');
-    forceMenuItem.setAttribute('label', 'Validate Reference (Force Re-check)');
-    
-    forceMenuItem.addEventListener('command', async (e: Event) => {
-        const items = Zotero.getActiveZoteroPane().getSelectedItems();
-        if (items.length > 0) {
-            Zotero.debug('Force Validate Reference invoked');
-            runValidation(items, true);
-        }
+    const forceMenuItem = doc.createXULElement("menuitem");
+    forceMenuItem.setAttribute(
+      "id",
+      "zotero-reference-validator-force-menu-item",
+    );
+    forceMenuItem.setAttribute("label", "Validate Reference (Force Re-check)");
+    forceMenuItem.addEventListener("command", async () => {
+      const items = Zotero.getActiveZoteroPane().getSelectedItems();
+      if (items.length > 0) {
+        Zotero.debug("Force Validate Reference invoked");
+        this.runValidation(items, true);
+      }
     });
-
     menuPopup.appendChild(forceMenuItem);
 
-    // Update disabled state when menu opens
-    menuPopup.addEventListener('popupshowing', () => {
-        const items = Zotero.getActiveZoteroPane().getSelectedItems();
-        const canValidate = items.every((item: any) => {
-            const hasStrongId = item.getField('DOI') || item.getField('ISBN') || item.getField('extra')?.includes('PMID');
-            const hasTitleAndAuthor = item.getField('title') && item.getCreators().length > 0;
-            return hasStrongId || hasTitleAndAuthor;
+    menuPopup.addEventListener("popupshowing", () => {
+      const items = Zotero.getActiveZoteroPane().getSelectedItems();
+      const canValidate =
+        items.length > 0 &&
+        items.every((item: any) => {
+          const hasStrongId =
+            item.getField("DOI") ||
+            item.getField("ISBN") ||
+            item.getField("extra")?.includes("PMID");
+          const hasTitleAndAuthor =
+            item.getField("title") && item.getCreators().length > 0;
+          return hasStrongId || hasTitleAndAuthor;
         });
 
-        if (canValidate) {
-            menuItem.removeAttribute('disabled');
-            menuItem.removeAttribute('tooltiptext');
-            forceMenuItem.removeAttribute('disabled');
-        } else {
-            menuItem.setAttribute('disabled', 'true');
-            menuItem.setAttribute('tooltiptext', 'Minimum metadata (DOI/ISBN or Title+Author) required.');
-            forceMenuItem.setAttribute('disabled', 'true');
-        }
+      if (canValidate) {
+        menuItem.removeAttribute("disabled");
+        menuItem.removeAttribute("tooltiptext");
+        forceMenuItem.removeAttribute("disabled");
+      } else {
+        menuItem.setAttribute("disabled", "true");
+        menuItem.setAttribute(
+          "tooltiptext",
+          "Minimum metadata (DOI/ISBN or Title+Author) required.",
+        );
+        forceMenuItem.setAttribute("disabled", "true");
+      }
     });
+  }
+
+  removeFromWindow(win: any) {
+    const doc = win.document;
+    doc.getElementById("zotero-reference-validator-menu-item")?.remove();
+    doc.getElementById("zotero-reference-validator-force-menu-item")?.remove();
+  }
+
+  private async runValidation(items: any[], force: boolean) {
+    const pw = new Zotero.ProgressWindow({ closeOnClick: false });
+    pw.changeHeadline("Validating References...");
+    const progress = new pw.ItemProgress(
+      "chrome://zotero/skin/tick.png",
+      `0 / ${items.length} items`,
+    );
+    progress.setProgress(0);
+    pw.show();
+
+    const batchSize = 10;
+    const results: Array<{ item: any; result: any }> = [];
+    for (let i = 0; i < items.length; i += batchSize) {
+      const batch = items.slice(i, i + batchSize);
+      const settled = await Promise.allSettled(
+        batch.map(async (item) => ({
+          item,
+          result: await this.orchestrator.validateItem(item, force),
+        })),
+      );
+
+      for (const outcome of settled) {
+        if (outcome.status === "fulfilled") {
+          results.push(outcome.value);
+        } else {
+          Zotero.debug(
+            `ReferenceValidator: Item validation failed - ${outcome.reason}`,
+          );
+        }
+      }
+
+      const pct = Math.round(
+        (Math.min(i + batchSize, items.length) / items.length) * 100,
+      );
+      progress.setProgress(pct);
+      progress.setText(`${results.length} / ${items.length} items`);
+    }
+
+    progress.setProgress(100);
+    progress.setText(`Done: ${results.length} items validated`);
+    pw.startCloseTimer(4000);
+    showResultsWindow(results);
+  }
 }

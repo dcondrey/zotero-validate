@@ -21,7 +21,7 @@ export interface CanonicalRecord {
   year?: number;
   venue?: {
     name: string;
-    type: 'journal' | 'conference' | 'workshop' | 'preprint' | 'book' | 'other';
+    type: "journal" | "conference" | "workshop" | "preprint" | "book" | "other";
     volume?: string;
     issue?: string;
     pages?: string;
@@ -50,13 +50,16 @@ export interface SourceAdapter {
   readonly rateLimit: { perSecond: number; concurrent: number };
 
   isConfigured(prefs: PluginPrefs): boolean;
-  getById(identifier: Identifier): Promise<CanonicalRecord | null>;
-  search(query: SearchQuery): Promise<CanonicalRecord[]>;
+  getById(
+    identifier: Identifier,
+    prefs?: PluginPrefs,
+  ): Promise<CanonicalRecord | null>;
+  search(query: SearchQuery, prefs?: PluginPrefs): Promise<CanonicalRecord[]>;
 }
 
 export interface FieldDiff {
   field: string;
-  status: 'match' | 'mismatch' | 'missing-zotero' | 'missing-source';
+  status: "match" | "mismatch" | "missing-zotero" | "missing-source";
   zoteroValue?: any;
   sourceValue?: any;
   diagnostic?: string;

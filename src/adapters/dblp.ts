@@ -1,0 +1,117 @@
+import {
+  SourceAdapter,
+  Identifier,
+  SearchQuery,
+  PluginPrefs,
+  CanonicalRecord,
+} from "../types";
+
+export class DblpAdapter implements SourceAdapter {
+  readonly id = "dblp";
+  readonly displayName = "DBLP Computer Science Bibliography";
+  readonly tier = 2;
+  readonly requiresCredential = false;
+  readonly rateLimit = { perSecond: 2, concurrent: 2 };
+
+  isConfigured(prefs: PluginPrefs): boolean {
+    return prefs["sources.dblp.enabled"] === true;
+  }
+
+  async getById(
+    identifier: Identifier,
+    prefs?: PluginPrefs,
+  ): Promise<CanonicalRecord | null> {
+    if (identifier.dblpKey) {
+      return this.fetchFromDblp(
+        `https://dblp.org/search/pub/api?q=key:${encodeURIComponent(identifier.dblpKey)}&format=json`,
+      );
+    }
+    if (identifier.doi) {
+      return this.fetchFromDblp(
+        `https://dblp.org/search/pub/api?q=${encodeURIComponent(identifier.doi)}&format=json`,
+      );
+    }
+    return null;
+  }
+
+  async search(
+    query: SearchQuery,
+    prefs?: PluginPrefs,
+  ): Promise<CanonicalRecord[]> {
+    if (!query.title) return [];
+    let term = query.title.replace(/[:\-/]/g, " ");
+    if (query.authors && query.authors.length > 0) {
+      term += ` ${query.authors[0]}`;
+    }
+
+    const url = `https://dblp.org/search/pub/api?q=${encodeURIComponent(term)}&format=json&h=5`;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      const hits = data.result?.hits?.hit;
+      if (!hits) return [];
+
+      return (Array.isArray(hits) ? hits : [hits]).map((h: any) =>
+        this.transformRecord(h.info),
+      );
+    } catch (e) {
+      throw new Error(
+        `Search failed: ${e instanceof Error ? e.message : "unknown"}`,
+      );
+    }
+  }
+
+  private async fetchFromDblp(url: string): Promise<CanonicalRecord | null> {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) return null;
+      const data = await response.json();
+      const hit = data.result?.hits?.hit?.[0];
+      return hit ? this.transformRecord(hit.info) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private transformRecord(info: any): CanonicalRecord {
+    // DBLP returns single authors as an object or strings occasionally, normalize to array
+    let rawAuthors = info.authors?.author || [];
+    if (!Array.isArray(rawAuthors)) {
+      rawAuthors = [rawAuthors];
+    }
+
+    const authors = rawAuthors.map((a: any) => {
+      const name = typeof a === "string" ? a : a.text || "";
+      const parts = name.trim().split(/\s+/);
+      const family = parts.length > 1 ? parts.pop() || "" : name;
+      return { family, given: parts.join(" "), raw: name };
+    });
+
+    return {
+      identifiers: {
+        doi: info.doi,
+        dblpKey: info.key,
+      },
+      title: info.title || "",
+      authors,
+      year: info.year ? parseInt(info.year, 10) : undefined,
+      venue: info.venue
+        ? {
+            name: info.venue,
+            type:
+              info.type === "Conference and Workshop Papers"
+                ? "conference"
+                : "journal",
+            volume: info.volume,
+            issue: info.number,
+            pages: info.pages,
+          }
+        : undefined,
+      source: this.id,
+      sourceUrl: info.ee || `https://dblp.org/rec/${info.key}`,
+      confidence: 0.85,
+      rawResponse: info,
+    };
+  }
+}

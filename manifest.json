@@ -4,12 +4,12 @@
   "applications": {
     "zotero": {
       "id": "zotero@chnm.gmu.edu",
-      "strict_min_version": "10.0-beta.5+b7437faf5",
+      "strict_min_version": "10.0",
       "strict_max_version": "10.0.*"
     }
   },
   "name": "Reference Validator",
   "description": "Validates reference metadata against authoritative scholarly sources.",
-  "author": "Gemini",
+  "author": "David Condrey",
   "homepageURL": "https://example.com"
 }
