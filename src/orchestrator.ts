@@ -14,6 +14,13 @@ import { AclAnthologyAdapter } from "./adapters/aclanthology";
 import { OpenReviewAdapter } from "./adapters/openreview";
 import { ArxivAdapter } from "./adapters/arxiv";
 import { OpenLibraryAdapter } from "./adapters/openlibrary";
+import { DataCiteAdapter } from "./adapters/datacite";
+import { EuropePMCAdapter } from "./adapters/europepmc";
+import { OpenCitationsAdapter } from "./adapters/opencitations";
+import { UnpaywallAdapter } from "./adapters/unpaywall";
+import { IAScholarAdapter } from "./adapters/iascholar";
+import { OrcidAdapter } from "./adapters/orcid";
+import { GoogleScholarAdapter } from "./adapters/googlescholar";
 import { compareRecords, ZoteroItemMock } from "./comparison";
 import { classify, ClassificationResult } from "./classifier";
 import { LLMClient } from "./llm";
@@ -101,6 +108,13 @@ export class Orchestrator {
     new OpenReviewAdapter(),
     new ArxivAdapter(),
     new OpenLibraryAdapter(),
+    new DataCiteAdapter(),
+    new EuropePMCAdapter(),
+    new OrcidAdapter(),
+    new OpenCitationsAdapter(),
+    new UnpaywallAdapter(),
+    new IAScholarAdapter(),
+    new GoogleScholarAdapter(),
   ];
   private llmClient: LLMClient;
   private limiters = new Map<string, TokenBucketRateLimiter>();

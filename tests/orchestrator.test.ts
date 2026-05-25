@@ -15,6 +15,13 @@ const ALL_DISABLED: Record<string, any> = {
   "sources.openreview.enabled": false,
   "sources.aclanthology.enabled": false,
   "sources.openlibrary.enabled": false,
+  "sources.datacite.enabled": false,
+  "sources.europepmc.enabled": false,
+  "sources.orcid.enabled": false,
+  "sources.opencitations.enabled": false,
+  "sources.unpaywall.enabled": false,
+  "sources.iascholar.enabled": false,
+  "sources.googlescholar.enabled": false,
 };
 
 beforeEach(() => {

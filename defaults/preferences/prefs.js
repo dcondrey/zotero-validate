@@ -17,6 +17,19 @@ pref(
   true,
 );
 pref("extensions.zotero.reference-validator.sources.openlibrary.enabled", true);
+pref("extensions.zotero.reference-validator.sources.datacite.enabled", true);
+pref("extensions.zotero.reference-validator.sources.europepmc.enabled", true);
+pref("extensions.zotero.reference-validator.sources.orcid.enabled", true);
+pref(
+  "extensions.zotero.reference-validator.sources.opencitations.enabled",
+  true,
+);
+pref("extensions.zotero.reference-validator.sources.unpaywall.enabled", true);
+pref("extensions.zotero.reference-validator.sources.iascholar.enabled", true);
+pref(
+  "extensions.zotero.reference-validator.sources.googlescholar.enabled",
+  false,
+);
 pref("extensions.zotero.reference-validator.behavior.min_sources", 2);
 pref("extensions.zotero.reference-validator.behavior.use_llm", false);
 pref("extensions.zotero.reference-validator.behavior.freshness_days", 90);
