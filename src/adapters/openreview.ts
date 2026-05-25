@@ -46,8 +46,7 @@ export class OpenReviewAdapter implements SourceAdapter {
   ): Promise<CanonicalRecord[]> {
     if (!query.title) return [];
 
-    // API v2 allows exact/prefix parsing lookups directly against note fields
-    const url = `https://api2.openreview.net/notes?content.title=${encodeURIComponent(query.title)}&limit=3`;
+    const url = `https://api2.openreview.net/notes/search?query=${encodeURIComponent(query.title)}&limit=3`;
     try {
       const response = await fetch(url);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);

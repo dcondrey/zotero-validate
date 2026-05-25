@@ -24,12 +24,12 @@ export class DblpAdapter implements SourceAdapter {
   ): Promise<CanonicalRecord | null> {
     if (identifier.dblpKey) {
       return this.fetchFromDblp(
-        `https://dblp.org/search/pub/api?q=key:${encodeURIComponent(identifier.dblpKey)}&format=json`,
+        `https://dblp.org/search/publ/api?q=key:${encodeURIComponent(identifier.dblpKey)}&format=json`,
       );
     }
     if (identifier.doi) {
       return this.fetchFromDblp(
-        `https://dblp.org/search/pub/api?q=${encodeURIComponent(identifier.doi)}&format=json`,
+        `https://dblp.org/search/publ/api?q=${encodeURIComponent(identifier.doi)}&format=json`,
       );
     }
     return null;
@@ -45,7 +45,7 @@ export class DblpAdapter implements SourceAdapter {
       term += ` ${query.authors[0]}`;
     }
 
-    const url = `https://dblp.org/search/pub/api?q=${encodeURIComponent(term)}&format=json&h=5`;
+    const url = `https://dblp.org/search/publ/api?q=${encodeURIComponent(term)}&format=json&h=5`;
     try {
       const response = await fetch(url);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
