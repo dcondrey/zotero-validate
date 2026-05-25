@@ -35,19 +35,21 @@ class TokenBucketRateLimiter {
   }
 
   async acquire(): Promise<void> {
-    while (this.activeConnections >= this.maxConcurrent || this.tokens < 1) {
-      this.refill();
-      if (this.activeConnections >= this.maxConcurrent || this.tokens < 1) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-    }
     this.refill();
-    this.tokens--;
-    this.activeConnections++;
+    if (this.activeConnections < this.maxConcurrent && this.tokens >= 1) {
+      this.tokens--;
+      this.activeConnections++;
+      return;
+    }
+    return new Promise<void>((resolve) => {
+      this.queue.push(resolve);
+      this.scheduleProcess();
+    });
   }
 
   release(): void {
     this.activeConnections = Math.max(0, this.activeConnections - 1);
+    this.processQueue();
   }
 
   private refill() {
@@ -59,6 +61,27 @@ class TokenBucketRateLimiter {
         this.tokens + elapsed * this.perSecond,
       );
       this.lastRefill = now;
+    }
+  }
+
+  private processQueue() {
+    this.refill();
+    while (
+      this.queue.length > 0 &&
+      this.activeConnections < this.maxConcurrent &&
+      this.tokens >= 1
+    ) {
+      this.tokens--;
+      this.activeConnections++;
+      const next = this.queue.shift();
+      if (next) next();
+    }
+  }
+
+  private scheduleProcess() {
+    if (this.queue.length > 0) {
+      const delay = Math.max(50, (1 / this.perSecond) * 1000);
+      setTimeout(() => this.processQueue(), delay);
     }
   }
 }
@@ -177,11 +200,9 @@ export class Orchestrator {
     const extra = item.getField("extra") || "";
     if (!force && extra.includes("ReferenceValidator:")) {
       try {
-        const reportStr = extra
-          .split("ReferenceValidator:")[1]
-          .trim()
-          .split("\n")[0];
-        const report = JSON.parse(reportStr);
+        const reportMatch = extra.match(/^ReferenceValidator:\s*(\{.*\})$/m);
+        if (!reportMatch) throw new Error("no report found");
+        const report = JSON.parse(reportMatch[1]);
         if (
           report === null ||
           typeof report !== "object" ||

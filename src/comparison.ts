@@ -31,23 +31,26 @@ function levenshteinRatio(s1: string, s2: string): number {
   if (s1.length > 1000 || s2.length > 1000) {
     return s1 === s2 ? 1.0 : 0.0;
   }
-  const matrix = Array(s2.length + 1)
-    .fill(null)
-    .map(() => Array(s1.length + 1).fill(null));
-  for (let i = 0; i <= s1.length; i += 1) matrix[0][i] = i;
-  for (let j = 0; j <= s2.length; j += 1) matrix[j][0] = j;
-  for (let j = 1; j <= s2.length; j += 1) {
-    for (let i = 1; i <= s1.length; i += 1) {
-      const indicator = s1[i - 1] === s2[j - 1] ? 0 : 1;
-      matrix[j][i] = Math.min(
-        matrix[j][i - 1] + 1,
-        matrix[j - 1][i] + 1,
-        matrix[j - 1][i - 1] + indicator,
+
+  let prevRow = Array(s1.length + 1)
+    .fill(0)
+    .map((_, i) => i);
+  const currRow = Array(s1.length + 1).fill(0);
+
+  for (let j = 1; j <= s2.length; j++) {
+    currRow[0] = j;
+    for (let i = 1; i <= s1.length; i++) {
+      const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
+      currRow[i] = Math.min(
+        currRow[i - 1] + 1,
+        prevRow[i] + 1,
+        prevRow[i - 1] + cost,
       );
     }
+    prevRow = [...currRow];
   }
   const maxLen = Math.max(s1.length, s2.length);
-  return 1 - matrix[s2.length][s1.length] / maxLen;
+  return 1 - prevRow[s1.length] / maxLen;
 }
 
 function normalizeFamilyName(name: string): string {

@@ -30,29 +30,29 @@ export function classify(
   ] of diffsBySource.entries()) {
     if (tier > 2) continue; // Only Tier 1 and 2 count toward minimum
 
-    // Check if there are any mismatches in critical fields
     const criticalFields = ["title", "authors", "year"];
-    const mismatches = diffs.filter(
-      (d) =>
-        d.status === "mismatch" ||
-        d.status === "missing-zotero" ||
-        d.status === "missing-source",
+    const conflicts = diffs.filter((d) => d.status === "mismatch");
+    const missing = diffs.filter(
+      (d) => d.status === "missing-zotero" || d.status === "missing-source",
     );
-    const criticalMismatches = mismatches.filter((d) =>
+    const criticalConflicts = conflicts.filter((d) =>
       criticalFields.includes(d.field),
     );
 
-    if (criticalMismatches.length === 0 && hasStrongIdentifierMatch) {
+    if (criticalConflicts.length === 0 && hasStrongIdentifierMatch) {
       exactPrimaryMatches++;
+      for (const m of missing) {
+        if (!allCorrections.has(m.field)) {
+          allCorrections.set(m.field, m);
+        }
+      }
     } else if (
       hasStrongIdentifierMatch ||
       (diffs.find((d) => d.field === "title")?.status === "match" &&
         diffs.find((d) => d.field === "authors")?.status === "match")
     ) {
-      // Has strong ID match or strong Title+Author match, but has field discrepancies
       partialPrimaryMatches++;
-      for (const m of mismatches) {
-        // Simplified: just taking the first correction encountered for a field
+      for (const m of [...conflicts, ...missing]) {
         if (!allCorrections.has(m.field)) {
           allCorrections.set(m.field, m);
         }
