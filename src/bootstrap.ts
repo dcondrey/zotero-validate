@@ -13,6 +13,7 @@ export function startup({ id, version, resourceURI, rootURI }: any) {
   registerPreferences();
 
   menuManager = new MenuManager();
+  menuManager.init();
 
   const windows = Zotero.getMainWindows();
   for (const win of windows) {
@@ -40,6 +41,7 @@ export function shutdown(reason: any) {
     }
   }
 
+  menuManager?.shutdown();
   menuManager = null;
   unregisterPreferences();
 }

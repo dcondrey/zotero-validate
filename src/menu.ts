@@ -1,5 +1,6 @@
 import { Orchestrator } from "./orchestrator";
 import { showResultsWindow } from "./ui";
+import { showLibraryWindow } from "./library-ui";
 
 const PREF_BRANCH = "extensions.zotero.reference-validator.";
 const PREF_KEYS = [
@@ -36,6 +37,18 @@ export class MenuManager {
       }
       return prefs;
     });
+  }
+
+  async init(): Promise<void> {
+    await this.orchestrator.init();
+  }
+
+  async shutdown(): Promise<void> {
+    await this.orchestrator.shutdown();
+  }
+
+  getOrchestrator(): Orchestrator {
+    return this.orchestrator;
   }
 
   addToWindow(win: any) {
@@ -76,6 +89,53 @@ export class MenuManager {
     });
     menuPopup.appendChild(forceMenuItem);
 
+    const libraryMenuItem = doc.createXULElement("menuitem");
+    libraryMenuItem.setAttribute(
+      "id",
+      "zotero-reference-validator-library-menu-item",
+    );
+    libraryMenuItem.setAttribute("label", "View Validated References Library");
+    libraryMenuItem.addEventListener("command", () => {
+      const library = this.orchestrator.getLibrary();
+      showLibraryWindow(library, async (entry) => {
+        const fakeItem = {
+          getField: (f: string) => {
+            if (f === "title") return entry.title;
+            if (f === "DOI") return entry.identifiers.doi || "";
+            if (f === "ISBN") return entry.identifiers.isbn || "";
+            if (f === "extra") {
+              const parts: string[] = [];
+              if (entry.identifiers.pmid)
+                parts.push(`PMID: ${entry.identifiers.pmid}`);
+              if (entry.identifiers.arxivId)
+                parts.push(`arXiv: ${entry.identifiers.arxivId}`);
+              return parts.join("\n");
+            }
+            return "";
+          },
+          getCreators: () =>
+            entry.canonicalRecord.authors.map((a) => ({
+              firstName: a.given,
+              lastName: a.family,
+              fieldMode: 0,
+            })),
+          getTags: () => [],
+          addTag: () => {},
+          removeTag: () => {},
+          setField: () => {},
+          saveTx: () => Promise.resolve(),
+          save: () => Promise.resolve(),
+          getCollections: () => [],
+          id: 0,
+          key: "",
+        };
+        const result = await this.orchestrator.validateItem(fakeItem, true);
+        entry.validationResult = result;
+        entry.validatedAt = Date.now();
+      });
+    });
+    menuPopup.appendChild(libraryMenuItem);
+
     menuPopup.addEventListener("popupshowing", () => {
       const items = Zotero.getActiveZoteroPane().getSelectedItems();
       const canValidate =
@@ -109,6 +169,9 @@ export class MenuManager {
     const doc = win.document;
     doc.getElementById("zotero-reference-validator-menu-item")?.remove();
     doc.getElementById("zotero-reference-validator-force-menu-item")?.remove();
+    doc
+      .getElementById("zotero-reference-validator-library-menu-item")
+      ?.remove();
   }
 
   private async runValidation(items: any[], force: boolean) {

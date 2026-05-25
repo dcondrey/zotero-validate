@@ -1,3 +1,9 @@
+declare const IOUtils: {
+  exists(path: string): Promise<boolean>;
+  read(path: string): Promise<Uint8Array>;
+  write(path: string, data: Uint8Array): Promise<void>;
+};
+
 declare const Zotero: {
   debug(message: string): void;
   getMainWindow(): any;
@@ -12,6 +18,9 @@ declare const Zotero: {
   };
   Items: {
     get(id: number): any;
+  };
+  DataDirectory: {
+    dir: string;
   };
   Prefs: {
     get(key: string): any;

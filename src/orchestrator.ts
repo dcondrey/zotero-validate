@@ -17,6 +17,7 @@ import { OpenLibraryAdapter } from "./adapters/openlibrary";
 import { compareRecords, ZoteroItemMock } from "./comparison";
 import { classify, ClassificationResult } from "./classifier";
 import { LLMClient } from "./llm";
+import { GlobalReferenceLibrary } from "./library";
 
 class TokenBucketRateLimiter {
   private queue: (() => void)[] = [];
@@ -104,10 +105,20 @@ export class Orchestrator {
   private llmClient: LLMClient;
   private limiters = new Map<string, TokenBucketRateLimiter>();
   private inFlightRequests = new Map<string, Promise<CanonicalRecord | null>>();
+  private library: GlobalReferenceLibrary;
   static programmaticMutations = new Set<string>();
 
   constructor(private getPrefs: () => PluginPrefs) {
     this.llmClient = new LLMClient(getPrefs);
+    this.library = new GlobalReferenceLibrary();
+  }
+
+  async init(): Promise<void> {
+    await this.library.load();
+  }
+
+  getLibrary(): GlobalReferenceLibrary {
+    return this.library;
   }
 
   static isShielded(itemKey: string): boolean {
@@ -250,13 +261,30 @@ export class Orchestrator {
       }
     }
 
-    // Inside orchestrator.ts -> validateItem()
     const identifier = this.extractIdentifier(item);
+    const title = item.getField("title");
+
+    if (!force) {
+      const libraryEntry = this.library.lookup(identifier, title);
+      if (libraryEntry) {
+        const freshnessMs = (prefs["behavior.freshness_days"] || 90) * 86400000;
+        if (Date.now() - libraryEntry.validatedAt < freshnessMs) {
+          const collectionName = item.getCollections?.()[0]?.name || "";
+          this.library.recordUsage(
+            identifier,
+            title,
+            item.id || 0,
+            collectionName,
+          );
+          return libraryEntry.validationResult;
+        }
+      }
+    }
+
     const diffsBySource = new Map<
       string,
       { tier: number; diffs: FieldDiff[]; hasStrongIdentifierMatch: boolean }
     >();
-    const title = item.getField("title");
     const allCandidates: CanonicalRecord[] = [];
     const adapterErrors: string[] = [];
 
@@ -329,7 +357,19 @@ export class Orchestrator {
     }
 
     await this.persistResult(item, result);
+
+    const bestCandidate = allCandidates[0];
+    if (bestCandidate) {
+      this.library.add(identifier, title, bestCandidate, result);
+      const collectionName = item.getCollections?.()[0]?.name || "";
+      this.library.recordUsage(identifier, title, item.id || 0, collectionName);
+    }
+
     return result;
+  }
+
+  async shutdown(): Promise<void> {
+    await this.library.flush();
   }
 
   // Inside orchestrator.ts
