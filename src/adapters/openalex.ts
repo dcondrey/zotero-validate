@@ -37,6 +37,8 @@ export class OpenAlexAdapter implements SourceAdapter {
       path = `/works/doi:${identifier.doi}`;
     } else if (identifier.pmid) {
       path = `/works/pmid:${identifier.pmid}`;
+    } else if (identifier.arxivId) {
+      path = `/works/arxiv:${identifier.arxivId}`;
     } else {
       return null;
     }

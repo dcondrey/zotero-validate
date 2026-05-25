@@ -30,6 +30,8 @@ export class EuropePMCAdapter implements SourceAdapter {
       queryTerm = `DOI:${identifier.doi}`;
     } else if (identifier.pmid) {
       queryTerm = `PMID:${identifier.pmid}`;
+    } else if (identifier.arxivId) {
+      queryTerm = `ARXIV:${identifier.arxivId}`;
     }
     if (!queryTerm) return null;
 

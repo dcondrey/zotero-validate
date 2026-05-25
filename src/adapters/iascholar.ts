@@ -25,10 +25,14 @@ export class IAScholarAdapter implements SourceAdapter {
     identifier: Identifier,
     prefs: PluginPrefs = {},
   ): Promise<CanonicalRecord | null> {
-    if (!identifier.doi) return null;
+    let queryId = "";
+    if (identifier.doi) queryId = `doi:${identifier.doi}`;
+    else if (identifier.arxivId) queryId = `arxiv:${identifier.arxivId}`;
+    else if (identifier.pmid) queryId = `pmid:${identifier.pmid}`;
+    if (!queryId) return null;
 
     try {
-      const url = `${BASE_URL}/search?q=doi:${encodeURIComponent(identifier.doi)}&format=json&limit=1`;
+      const url = `${BASE_URL}/search?q=${encodeURIComponent(queryId)}&format=json&limit=1`;
       const timeout = prefs["behavior.timeout_sec"] || 10;
       const data = await fetchJSON(url, {}, timeout);
       if (!data) return null;
