@@ -11,5 +11,5 @@
   "name": "Reference Validator",
   "description": "Validates reference metadata against authoritative scholarly sources.",
   "author": "David Condrey",
-  "homepageURL": "https://example.com"
+  "homepageURL": "https://github.com/dcondrey/zotero-validate"
 }
