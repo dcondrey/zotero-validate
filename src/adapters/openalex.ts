@@ -5,6 +5,7 @@ import {
   SearchQuery,
   PluginPrefs,
 } from "../types";
+import { politeFetch } from "../http";
 
 export class OpenAlexAdapter implements SourceAdapter {
   id = "openalex";
@@ -40,13 +41,8 @@ export class OpenAlexAdapter implements SourceAdapter {
     }
 
     try {
-      const timeoutMs = (prefs["behavior.timeout_sec"] || 10) * 1000;
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-      const response = await fetch(this.getUrl(path, prefs), {
-        signal: controller.signal,
-      });
-      clearTimeout(timer);
+      const timeout = prefs["behavior.timeout_sec"] || 10;
+      const response = await politeFetch(this.getUrl(path, prefs), {}, timeout);
       if (!response.ok) return null;
       const data = await response.json();
       return this.normalize(data);
@@ -65,13 +61,8 @@ export class OpenAlexAdapter implements SourceAdapter {
       // Basic search by title
       const url = new URL(this.getUrl("/works", prefs));
       url.searchParams.append("search", query.title);
-      const timeoutMs = (prefs["behavior.timeout_sec"] || 10) * 1000;
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-      const response = await fetch(url.toString(), {
-        signal: controller.signal,
-      });
-      clearTimeout(timer);
+      const timeout = prefs["behavior.timeout_sec"] || 10;
+      const response = await politeFetch(url.toString(), {}, timeout);
       if (!response.ok) return [];
       const data = await response.json();
       return (data.results || [])

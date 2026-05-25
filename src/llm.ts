@@ -1,5 +1,6 @@
 import { CanonicalRecord, PluginPrefs, FieldDiff } from "./types";
 import { ClassificationResult } from "./classifier";
+import { politeFetch } from "./http";
 
 interface LLMVerdict {
   match: boolean;
@@ -155,16 +156,12 @@ export class LLMClient {
       };
     }
 
-    const timeoutMs = (this.getPrefs()["behavior.timeout_sec"] || 30) * 1000;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    });
-    clearTimeout(timer);
+    const timeout = this.getPrefs()["behavior.timeout_sec"] || 30;
+    const response = await politeFetch(
+      endpoint,
+      { method: "POST", headers, body: JSON.stringify(body) },
+      timeout,
+    );
 
     if (!response.ok) throw new Error(`API returned ${response.status}`);
 

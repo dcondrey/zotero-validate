@@ -44,6 +44,7 @@ function mockItem(
     saveTx: vi.fn(),
     save: vi.fn(),
     key: "TEST_KEY",
+    id: 12345,
   };
 }
 
@@ -189,12 +190,12 @@ describe("Orchestrator", () => {
       const orch = new Orchestrator(() => ALL_DISABLED);
       await orch.validateItem(item);
       expect(item.addTag).toHaveBeenCalledWith("validation-flagged");
-      expect(item.save).toHaveBeenCalled();
+      expect(item.saveTx).toHaveBeenCalled();
     });
 
     it("should handle save failure gracefully", async () => {
       const item = mockItem({});
-      item.save.mockRejectedValue(new Error("DB locked"));
+      item.saveTx.mockRejectedValue(new Error("DB locked"));
       const orch = new Orchestrator(() => ALL_DISABLED);
       const result = await orch.validateItem(item);
       expect(result.status).toBe("FLAGGED");

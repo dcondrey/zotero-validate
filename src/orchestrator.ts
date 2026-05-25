@@ -76,6 +76,9 @@ class TokenBucketRateLimiter {
       const next = this.queue.shift();
       if (next) next();
     }
+    if (this.queue.length > 0) {
+      this.scheduleProcess();
+    }
   }
 
   private scheduleProcess() {
@@ -337,9 +340,9 @@ export class Orchestrator {
       result,
     };
 
-    const itemKey = item.key || "";
+    const itemId = String(item.id || "");
     try {
-      Orchestrator.programmaticMutations.add(itemKey);
+      Orchestrator.programmaticMutations.add(itemId);
       await Zotero.DB.executeTransaction(async () => {
         // 1. Force Zotero to pull the current string directly from the database disk cache.
         // Passing true parameters tells Zotero to bypass stale, un-saved client UI object states.
@@ -363,18 +366,14 @@ export class Orchestrator {
         item.addTag(newTag);
         item.setField("extra", extra);
 
-        // 4. Save changes back to SQLite database.
-        // Note: When inside an explicit Zotero.DB.executeTransaction block,
-        // you use item.save() instead of item.saveTx(). This allows the item's internal
-        // routines to automatically link to and cleanly wrap inside the open transaction.
-        await item.save({ skipNotifier: false });
+        await item.saveTx();
       });
     } catch (e) {
       Zotero.debug(
         `ReferenceValidator: Failed to persist result cleanly - ${e}`,
       );
     } finally {
-      Orchestrator.programmaticMutations.delete(itemKey);
+      Orchestrator.programmaticMutations.delete(itemId);
     }
   }
 }

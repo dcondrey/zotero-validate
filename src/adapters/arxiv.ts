@@ -1,11 +1,17 @@
-import { SourceAdapter, Identifier, SearchQuery, PluginPrefs, CanonicalRecord } from "../types";
+import {
+  SourceAdapter,
+  Identifier,
+  SearchQuery,
+  PluginPrefs,
+  CanonicalRecord,
+} from "../types";
 
 export class ArxivAdapter implements SourceAdapter {
   readonly id = "arxiv";
   readonly displayName = "arXiv e-Print Archive";
   readonly tier = 1; // Primary document repository
   readonly requiresCredential = false;
-  
+
   // arXiv's official usage policy strictly requests no more than 1 request every 3 seconds
   readonly rateLimit = { perSecond: 0.33, concurrent: 1 };
 
@@ -13,7 +19,10 @@ export class ArxivAdapter implements SourceAdapter {
     return prefs["sources.arxiv.enabled"] !== false;
   }
 
-  async getById(identifier: Identifier, prefs?: PluginPrefs): Promise<CanonicalRecord | null> {
+  async getById(
+    identifier: Identifier,
+    prefs?: PluginPrefs,
+  ): Promise<CanonicalRecord | null> {
     const arxivId = identifier.arxivId;
     if (!arxivId) return null;
 
@@ -21,7 +30,10 @@ export class ArxivAdapter implements SourceAdapter {
     return this.executeArxivQuery(url);
   }
 
-  async search(query: SearchQuery, prefs?: PluginPrefs): Promise<CanonicalRecord[]> {
+  async search(
+    query: SearchQuery,
+    prefs?: PluginPrefs,
+  ): Promise<CanonicalRecord[]> {
     if (!query.title) return [];
 
     let searchTerms = `ti:"${query.title}"`;
@@ -30,7 +42,7 @@ export class ArxivAdapter implements SourceAdapter {
     }
 
     const url = `https://export.arxiv.org/api/query?search_query=${encodeURIComponent(searchTerms)}&max_results=3`;
-    
+
     try {
       const response = await fetch(url);
       if (!response.ok) return [];
@@ -48,11 +60,15 @@ export class ArxivAdapter implements SourceAdapter {
       }
       return records;
     } catch (e) {
-      throw new Error(`arXiv Search failed: ${e instanceof Error ? e.message : "unknown"}`);
+      throw new Error(
+        `arXiv Search failed: ${e instanceof Error ? e.message : "unknown"}`,
+      );
     }
   }
 
-  private async executeArxivQuery(url: string): Promise<CanonicalRecord | null> {
+  private async executeArxivQuery(
+    url: string,
+  ): Promise<CanonicalRecord | null> {
     try {
       const response = await fetch(url);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -64,7 +80,9 @@ export class ArxivAdapter implements SourceAdapter {
 
       return entry ? this.transformEntry(entry) : null;
     } catch (e) {
-      throw new Error(`arXiv Fetch failed: ${e instanceof Error ? e.message : "unknown"}`);
+      throw new Error(
+        `arXiv Fetch failed: ${e instanceof Error ? e.message : "unknown"}`,
+      );
     }
   }
 
@@ -87,11 +105,16 @@ export class ArxivAdapter implements SourceAdapter {
       return { family, given: parts.join(" "), raw: name };
     });
 
-    const publishedStr = entry.getElementsByTagName("published")[0]?.textContent || "";
-    const year = publishedStr ? new Date(publishedStr).getFullYear() : undefined;
+    const publishedStr =
+      entry.getElementsByTagName("published")[0]?.textContent || "";
+    const year = publishedStr
+      ? new Date(publishedStr).getFullYear()
+      : undefined;
 
     // Extract DOI if the preprint has already transitioned to a published journal state
-    const doiElement = entry.getElementsByTagName("arxiv:doi")[0];
+    const doiElement =
+      entry.getElementsByTagNameNS("http://arxiv.org/schemas/atom", "doi")[0] ||
+      entry.getElementsByTagName("doi")[0];
     const doi = doiElement?.textContent || undefined;
 
     return {

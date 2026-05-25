@@ -5,6 +5,7 @@ import {
   SearchQuery,
   PluginPrefs,
 } from "../types";
+import { politeFetch } from "../http";
 
 export class CrossrefAdapter implements SourceAdapter {
   id = "crossref";
@@ -35,17 +36,12 @@ export class CrossrefAdapter implements SourceAdapter {
     if (!identifier.doi) return null;
 
     try {
-      const timeoutMs = (prefs["behavior.timeout_sec"] || 10) * 1000;
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-      const response = await fetch(
+      const timeout = prefs["behavior.timeout_sec"] || 10;
+      const response = await politeFetch(
         `https://api.crossref.org/works/${encodeURIComponent(identifier.doi)}`,
-        {
-          headers: this.getHeaders(prefs),
-          signal: controller.signal,
-        },
+        { headers: this.getHeaders(prefs) },
+        timeout,
       );
-      clearTimeout(timer);
       if (!response.ok) return null;
 
       const data = await response.json();
@@ -69,14 +65,12 @@ export class CrossrefAdapter implements SourceAdapter {
       if (query.authors && query.authors.length > 0) {
         url.searchParams.append("query.author", query.authors[0]);
       }
-      const timeoutMs = (prefs["behavior.timeout_sec"] || 10) * 1000;
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-      const response = await fetch(url.toString(), {
-        headers: this.getHeaders(prefs),
-        signal: controller.signal,
-      });
-      clearTimeout(timer);
+      const timeout = prefs["behavior.timeout_sec"] || 10;
+      const response = await politeFetch(
+        url.toString(),
+        { headers: this.getHeaders(prefs) },
+        timeout,
+      );
       if (!response.ok) return [];
       const data = await response.json();
       return (data.message.items || [])
@@ -112,7 +106,7 @@ export class CrossrefAdapter implements SourceAdapter {
       venue: item["container-title"]
         ? {
             name: item["container-title"][0],
-            type: "journal", // simplified mapping
+            type: this.mapVenueType(item.type),
             volume: item.volume,
             issue: item.issue,
             pages: item.page,
@@ -123,5 +117,21 @@ export class CrossrefAdapter implements SourceAdapter {
       confidence: 1.0, // Directly from Crossref via DOI
       rawResponse: item,
     };
+  }
+
+  private mapVenueType(
+    crossrefType?: string,
+  ): "journal" | "conference" | "book" | "preprint" | "other" {
+    if (!crossrefType) return "other";
+    if (crossrefType === "journal-article") return "journal";
+    if (
+      crossrefType === "proceedings-article" ||
+      crossrefType === "conference-paper"
+    )
+      return "conference";
+    if (crossrefType === "book-chapter" || crossrefType === "monograph")
+      return "book";
+    if (crossrefType === "posted-content") return "preprint";
+    return "other";
   }
 }

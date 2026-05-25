@@ -77,9 +77,12 @@ export class AclAnthologyAdapter implements SourceAdapter {
 
   private parseBibtex(bib: string, aclId: string): CanonicalRecord | null {
     const extractField = (field: string): string => {
-      const regex = new RegExp(`${field}\\s*=\\s*["{]([^"}]*)["}]`, "i");
+      const regex = new RegExp(
+        `${field}\\s*=\\s*["{]([\\s\\S]*?)["}],?\\s*(?:\\n|\\r|$)`,
+        "i",
+      );
       const match = bib.match(regex);
-      return match ? match[1].trim() : "";
+      return match ? match[1].replace(/[{}]/g, "").trim() : "";
     };
 
     const title = extractField("title").replace(/\s+/g, " ");
