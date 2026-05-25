@@ -48,7 +48,7 @@ export class OpenAlexAdapter implements SourceAdapter {
       const response = await politeFetch(this.getUrl(path, prefs), {}, timeout);
       if (!response.ok) return null;
       const data = await response.json();
-      return this.normalize(data);
+      return this.normalize(data, 1.0);
     } catch (e) {
       Zotero.debug(`ReferenceValidator: OpenAlex getById failed - ${e}`);
       return null;
@@ -69,7 +69,7 @@ export class OpenAlexAdapter implements SourceAdapter {
       if (!response.ok) return [];
       const data = await response.json();
       return (data.results || [])
-        .map((item: any) => this.normalize(item))
+        .map((item: any) => this.normalize(item, 0.85))
         .slice(0, 5);
     } catch (e) {
       Zotero.debug(`ReferenceValidator: OpenAlex search failed - ${e}`);
@@ -77,7 +77,7 @@ export class OpenAlexAdapter implements SourceAdapter {
     }
   }
 
-  private normalize(item: any): CanonicalRecord {
+  private normalize(item: any, confidence: number): CanonicalRecord {
     const authors = (item.authorships || []).map((a: any) =>
       parseAuthorName(a.author?.display_name || ""),
     );
@@ -102,11 +102,17 @@ export class OpenAlexAdapter implements SourceAdapter {
               item.primary_location.source.type === "journal"
                 ? "journal"
                 : "other",
+            volume: item.biblio?.volume,
+            issue: item.biblio?.issue,
+            pages:
+              item.biblio?.first_page && item.biblio?.last_page
+                ? `${item.biblio.first_page}-${item.biblio.last_page}`
+                : item.biblio?.first_page,
           }
         : undefined,
       source: this.id,
       sourceUrl: item.id || "",
-      confidence: 1.0,
+      confidence,
       rawResponse: item,
     };
   }

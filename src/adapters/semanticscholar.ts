@@ -52,7 +52,7 @@ export class SemanticScholarAdapter implements SourceAdapter {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
       const data = await response.json();
-      return this.transformRecord(data);
+      return this.transformRecord(data, 1.0);
     } catch (e) {
       throw new Error(
         `Lookup failed: ${e instanceof Error ? e.message : "unknown"}`,
@@ -81,7 +81,7 @@ export class SemanticScholarAdapter implements SourceAdapter {
       const data = await response.json();
       if (!data.data || !Array.isArray(data.data)) return [];
 
-      return data.data.map((item: any) => this.transformRecord(item));
+      return data.data.map((item: any) => this.transformRecord(item, 0.8));
     } catch (e) {
       throw new Error(
         `Search failed: ${e instanceof Error ? e.message : "unknown"}`,
@@ -89,7 +89,7 @@ export class SemanticScholarAdapter implements SourceAdapter {
     }
   }
 
-  private transformRecord(raw: any): CanonicalRecord {
+  private transformRecord(raw: any, confidence: number): CanonicalRecord {
     const authors = (raw.authors || []).map((a: any) =>
       parseAuthorName(a?.name || ""),
     );
@@ -102,6 +102,7 @@ export class SemanticScholarAdapter implements SourceAdapter {
         doi: extIds.DOI,
         arxivId: extIds.ArXiv,
         pmid: extIds.PubMed,
+        isbn: extIds.ISBN,
         semanticScholarId: raw.paperId,
       },
       title: raw.title || "",
@@ -118,7 +119,7 @@ export class SemanticScholarAdapter implements SourceAdapter {
       source: this.id,
       sourceUrl:
         raw.url || `https://www.semanticscholar.org/paper/${raw.paperId}`,
-      confidence: 0.9,
+      confidence,
       rawResponse: raw,
     };
   }

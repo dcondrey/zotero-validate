@@ -81,6 +81,7 @@ export class OpenLibraryAdapter implements SourceAdapter {
           raw.identifiers?.isbn_13?.[0] ||
           raw.identifiers?.isbn_10?.[0] ||
           isbn,
+        doi: raw.identifiers?.doi?.[0],
       },
       title: raw.title || "",
       authors,
@@ -104,6 +105,7 @@ export class OpenLibraryAdapter implements SourceAdapter {
     return {
       identifiers: {
         isbn: doc.isbn?.[0],
+        doi: doc.doi,
       },
       title: doc.title || "",
       authors,

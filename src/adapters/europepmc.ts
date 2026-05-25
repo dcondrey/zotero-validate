@@ -96,9 +96,12 @@ export class EuropePMCAdapter implements SourceAdapter {
     const issue = safeString(safeGet(item, "journalInfo", "issue"));
     const pages = safeString(safeGet(item, "pageInfo"));
 
+    const arxivId = safeString(safeGet(item, "arxivId"));
+
     const identifiers: Identifier = {};
     if (doi) identifiers.doi = doi;
     if (pmid) identifiers.pmid = pmid;
+    if (arxivId) identifiers.arxivId = arxivId;
 
     let sourceUrl = "";
     if (doi) {

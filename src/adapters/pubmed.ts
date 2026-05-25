@@ -1,4 +1,10 @@
-import { SourceAdapter, Identifier, SearchQuery, PluginPrefs, CanonicalRecord } from "../types";
+import {
+  SourceAdapter,
+  Identifier,
+  SearchQuery,
+  PluginPrefs,
+  CanonicalRecord,
+} from "../types";
 
 export class PubMedAdapter implements SourceAdapter {
   readonly id = "pubmed";
@@ -11,7 +17,10 @@ export class PubMedAdapter implements SourceAdapter {
     return prefs["sources.pubmed.enabled"] !== false; // Default to true if not explicitly dead
   }
 
-  async getById(identifier: Identifier, prefs?: PluginPrefs): Promise<CanonicalRecord | null> {
+  async getById(
+    identifier: Identifier,
+    prefs?: PluginPrefs,
+  ): Promise<CanonicalRecord | null> {
     let pmid = identifier.pmid;
 
     // Resolve DOI via Esearch first if direct PMID is absent
@@ -33,17 +42,22 @@ export class PubMedAdapter implements SourceAdapter {
       const response = await fetch(summaryUrl);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
-      
+
       const record = data.result?.[pmid];
       return record ? this.transformRecord(pmid, record) : null;
     } catch (e) {
-      throw new Error(`Fetch error: ${e instanceof Error ? e.message : "unknown"}`);
+      throw new Error(
+        `Fetch error: ${e instanceof Error ? e.message : "unknown"}`,
+      );
     }
   }
 
-  async search(query: SearchQuery, prefs?: PluginPrefs): Promise<CanonicalRecord[]> {
+  async search(
+    query: SearchQuery,
+    prefs?: PluginPrefs,
+  ): Promise<CanonicalRecord[]> {
     if (!query.title) return [];
-    
+
     let term = `${query.title}[Title]`;
     if (query.authors && query.authors.length > 0) {
       term += ` AND ${query.authors[0]}[Author]`;
@@ -62,31 +76,44 @@ export class PubMedAdapter implements SourceAdapter {
       const summaryData = await summaryRes.json();
 
       return ids
-        .map((id) => summaryData.result?.[id] ? this.transformRecord(id, summaryData.result[id]) : null)
+        .map((id) =>
+          summaryData.result?.[id]
+            ? this.transformRecord(id, summaryData.result[id], 0.8)
+            : null,
+        )
         .filter((r): r is CanonicalRecord => r !== null);
     } catch (e) {
-      throw new Error(`Search query breakdown: ${e instanceof Error ? e.message : "unknown"}`);
+      throw new Error(
+        `Search query breakdown: ${e instanceof Error ? e.message : "unknown"}`,
+      );
     }
   }
 
-  private transformRecord(pmid: string, raw: any): CanonicalRecord {
+  private transformRecord(
+    pmid: string,
+    raw: any,
+    confidence: number = 0.95,
+  ): CanonicalRecord {
     const authors = (raw.authors || []).map((a: any) => {
       // PubMed returns structured format natively: "Smith JO"
-      const parts = a.name.trim().split(/\s+/);
+      const parts = (a?.name || "").trim().split(/\s+/);
       const family = parts[0] || "";
       const given = parts.slice(1).join(" ");
-      return { family, given, raw: a.name };
+      return { family, given, raw: a?.name || "" };
     });
 
     // Extract potential DOI buried deep inside native article IDs wrapper
     let doi: string | undefined;
+    let resolvedPmid = pmid;
     if (Array.isArray(raw.articleids)) {
       const doiObj = raw.articleids.find((id: any) => id.idtype === "doi");
       if (doiObj) doi = doiObj.value;
+      const pmidObj = raw.articleids.find((id: any) => id.idtype === "pubmed");
+      if (pmidObj?.value) resolvedPmid = pmidObj.value;
     }
 
     return {
-      identifiers: { pmid, doi },
+      identifiers: { pmid: resolvedPmid, doi },
       title: raw.title || "",
       authors,
       year: raw.pubdate ? parseInt(raw.pubdate.substring(0, 4), 10) : undefined,
@@ -99,7 +126,7 @@ export class PubMedAdapter implements SourceAdapter {
       },
       source: this.id,
       sourceUrl: `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`,
-      confidence: 0.95,
+      confidence,
       rawResponse: raw,
     };
   }

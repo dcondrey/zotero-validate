@@ -42,7 +42,7 @@ export class DblpAdapter implements SourceAdapter {
     if (!query.title) return [];
     let term = query.title.replace(/[:\-/]/g, " ");
     if (query.authors && query.authors.length > 0) {
-      term += ` ${query.authors[0]}`;
+      term += ` author:${query.authors[0]}`;
     }
 
     const url = `https://dblp.org/search/publ/api?q=${encodeURIComponent(term)}&format=json&h=5`;

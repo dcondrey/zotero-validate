@@ -43,7 +43,7 @@ export class CrossrefAdapter implements SourceAdapter {
         timeout,
       );
       if (!data?.message) return null;
-      return this.normalize(data.message);
+      return this.normalize(data.message, 1.0);
     } catch (e) {
       Zotero.debug(`ReferenceValidator: Crossref getById failed - ${e}`);
       return null;
@@ -69,14 +69,14 @@ export class CrossrefAdapter implements SourceAdapter {
         timeout,
       );
       const items = safeArray(safeGet(data, "message", "items"));
-      return items.map((item: any) => this.normalize(item)).slice(0, 5);
+      return items.map((item: any) => this.normalize(item, 0.85)).slice(0, 5);
     } catch (e) {
       Zotero.debug(`ReferenceValidator: Crossref search failed - ${e}`);
       return [];
     }
   }
 
-  private normalize(item: any): CanonicalRecord {
+  private normalize(item: any, confidence: number): CanonicalRecord {
     if (!item || typeof item !== "object") {
       return this.emptyRecord(item);
     }
@@ -92,8 +92,18 @@ export class CrossrefAdapter implements SourceAdapter {
 
     const containerTitle = safeArray(item["container-title"]);
 
+    const identifiers: Identifier = { doi: safeString(item.DOI) };
+    const altIds = safeArray(item["alternative-id"]);
+    const arxivMatch = altIds.find(
+      (id: string) => typeof id === "string" && /\d{4}\.\d{4,5}/.test(id),
+    );
+    if (arxivMatch) {
+      const match = arxivMatch.match(/(\d{4}\.\d{4,5})/);
+      if (match) identifiers.arxivId = match[1];
+    }
+
     return {
-      identifiers: { doi: safeString(item.DOI) },
+      identifiers,
       title: safeString(safeArray(item.title)[0]),
       authors,
       year: typeof year === "number" ? year : undefined,
@@ -110,7 +120,7 @@ export class CrossrefAdapter implements SourceAdapter {
       source: this.id,
       sourceUrl:
         safeString(item.URL) || `https://doi.org/${safeString(item.DOI)}`,
-      confidence: 1.0,
+      confidence,
       rawResponse: item,
     };
   }

@@ -75,6 +75,8 @@ export class UnpaywallAdapter implements SourceAdapter {
 
     const doi = safeString(item.doi);
     const journalName = safeString(item.journal_name);
+    const volume = safeString(item.volume) || undefined;
+    const issue = safeString(item.issue) || undefined;
 
     return {
       identifiers: { doi: doi || undefined },
@@ -85,6 +87,8 @@ export class UnpaywallAdapter implements SourceAdapter {
         ? {
             name: journalName,
             type: "journal",
+            volume,
+            issue,
           }
         : undefined,
       source: this.id,

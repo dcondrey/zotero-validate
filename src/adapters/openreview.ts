@@ -73,7 +73,9 @@ export class OpenReviewAdapter implements SourceAdapter {
       rawAuthors = content.authors.value;
     }
 
-    const authors = rawAuthors.map((name: string) => parseAuthorName(name));
+    const authors = rawAuthors
+      .filter((name: string) => name != null && name !== "")
+      .map((name: string) => parseAuthorName(name));
 
     const dateTs = note.mdate || note.tcdate;
     const year = parseTimestampYear(dateTs);

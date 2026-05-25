@@ -89,26 +89,32 @@ export class AclAnthologyAdapter implements SourceAdapter {
     if (!title) return null;
 
     const rawAuthors = extractField("author");
-    const authors = rawAuthors.split(/\s+and\s+/i).map((name) => {
-      const parts = name.trim().split(/,\s*/);
-      let family = "";
-      let given = "";
-      if (parts.length > 1) {
-        [family, given] = parts;
-      } else {
-        const spaceParts = name.trim().split(/\s+/);
-        family = spaceParts.pop() || "";
-        given = spaceParts.join(" ");
-      }
-      return { family, given, raw: name };
-    });
+    const authors = rawAuthors
+      .split(/\s+and\s+/i)
+      .filter((name) => name.trim())
+      .map((name) => {
+        const parts = name.trim().split(/,\s*/);
+        let family = "";
+        let given = "";
+        if (parts.length > 1) {
+          [family, given] = parts;
+        } else {
+          const spaceParts = name.trim().split(/\s+/);
+          family = spaceParts.pop() || "";
+          given = spaceParts.join(" ");
+        }
+        return { family, given, raw: name };
+      });
 
     const yearStr = extractField("year");
     const booktitle = extractField("booktitle");
     const journal = extractField("journal");
 
     return {
-      identifiers: { aclAnthologyId: aclId },
+      identifiers: {
+        aclAnthologyId: aclId,
+        doi: extractField("doi") || undefined,
+      },
       title,
       authors,
       year: yearStr ? parseInt(yearStr, 10) : undefined,
