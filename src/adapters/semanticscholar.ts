@@ -1,4 +1,11 @@
-import { SourceAdapter, Identifier, SearchQuery, PluginPrefs, CanonicalRecord } from "../types";
+import { parseAuthorName } from "./utils";
+import {
+  SourceAdapter,
+  Identifier,
+  SearchQuery,
+  PluginPrefs,
+  CanonicalRecord,
+} from "../types";
 
 export class SemanticScholarAdapter implements SourceAdapter {
   readonly id = "semanticscholar";
@@ -12,7 +19,9 @@ export class SemanticScholarAdapter implements SourceAdapter {
   }
 
   private getHeaders(prefs?: PluginPrefs): HeadersInit {
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
     const apiKey = prefs?.["sources.semanticscholar.key"];
     if (apiKey) {
       headers["x-api-key"] = apiKey;
@@ -20,16 +29,21 @@ export class SemanticScholarAdapter implements SourceAdapter {
     return headers;
   }
 
-  async getById(identifier: Identifier, prefs?: PluginPrefs): Promise<CanonicalRecord | null> {
+  async getById(
+    identifier: Identifier,
+    prefs?: PluginPrefs,
+  ): Promise<CanonicalRecord | null> {
     let targetId = "";
     if (identifier.doi) targetId = `DOI:${identifier.doi}`;
-    else if (identifier.semanticScholarId) targetId = identifier.semanticScholarId;
+    else if (identifier.semanticScholarId)
+      targetId = identifier.semanticScholarId;
     else if (identifier.arxivId) targetId = `ARXIV:${identifier.arxivId}`;
     else if (identifier.pmid) targetId = `PMID:${identifier.pmid}`;
 
     if (!targetId) return null;
 
-    const fields = "title,authors,year,venue,externalIds,publicationVenue,citationCount";
+    const fields =
+      "title,authors,year,venue,externalIds,publicationVenue,citationCount";
     const url = `https://api.semanticscholar.org/graph/v1/paper/${encodeURIComponent(targetId)}?fields=${fields}`;
 
     try {
@@ -40,13 +54,18 @@ export class SemanticScholarAdapter implements SourceAdapter {
       const data = await response.json();
       return this.transformRecord(data);
     } catch (e) {
-      throw new Error(`Lookup failed: ${e instanceof Error ? e.message : "unknown"}`);
+      throw new Error(
+        `Lookup failed: ${e instanceof Error ? e.message : "unknown"}`,
+      );
     }
   }
 
-  async search(query: SearchQuery, prefs?: PluginPrefs): Promise<CanonicalRecord[]> {
+  async search(
+    query: SearchQuery,
+    prefs?: PluginPrefs,
+  ): Promise<CanonicalRecord[]> {
     if (!query.title) return [];
-    
+
     let queryString = query.title;
     if (query.authors && query.authors.length > 0) {
       queryString += ` ${query.authors[0]}`;
@@ -64,17 +83,16 @@ export class SemanticScholarAdapter implements SourceAdapter {
 
       return data.data.map((item: any) => this.transformRecord(item));
     } catch (e) {
-      throw new Error(`Search failed: ${e instanceof Error ? e.message : "unknown"}`);
+      throw new Error(
+        `Search failed: ${e instanceof Error ? e.message : "unknown"}`,
+      );
     }
   }
 
   private transformRecord(raw: any): CanonicalRecord {
-    const authors = (raw.authors || []).map((a: any) => {
-      const parts = a.name.trim().split(/\s+/);
-      const family = parts.length > 1 ? parts.pop() || "" : a.name;
-      const given = parts.join(" ");
-      return { family, given, raw: a.name };
-    });
+    const authors = (raw.authors || []).map((a: any) =>
+      parseAuthorName(a?.name || ""),
+    );
 
     const extIds = raw.externalIds || {};
     const venueType = raw.publicationVenue?.type?.toLowerCase();
@@ -89,12 +107,17 @@ export class SemanticScholarAdapter implements SourceAdapter {
       title: raw.title || "",
       authors,
       year: raw.year ? parseInt(raw.year, 10) : undefined,
-      venue: raw.venue ? {
-        name: raw.venue,
-        type: ["journal", "conference", "book"].includes(venueType) ? venueType : "other",
-      } : undefined,
+      venue: raw.venue
+        ? {
+            name: raw.venue,
+            type: ["journal", "conference", "book"].includes(venueType)
+              ? venueType
+              : "other",
+          }
+        : undefined,
       source: this.id,
-      sourceUrl: raw.url || `https://www.semanticscholar.org/paper/${raw.paperId}`,
+      sourceUrl:
+        raw.url || `https://www.semanticscholar.org/paper/${raw.paperId}`,
       confidence: 0.9,
       rawResponse: raw,
     };

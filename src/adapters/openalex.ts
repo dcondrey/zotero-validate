@@ -6,6 +6,7 @@ import {
   PluginPrefs,
 } from "../types";
 import { politeFetch } from "../http";
+import { parseAuthorName } from "./utils";
 
 export class OpenAlexAdapter implements SourceAdapter {
   id = "openalex";
@@ -74,46 +75,10 @@ export class OpenAlexAdapter implements SourceAdapter {
     }
   }
 
-  private parseAuthorName(raw: string): { family: string; given: string } {
-    const commaIdx = raw.indexOf(",");
-    if (commaIdx !== -1) {
-      return {
-        family: raw.slice(0, commaIdx).trim(),
-        given: raw.slice(commaIdx + 1).trim(),
-      };
-    }
-    const parts = raw.split(" ");
-    if (parts.length <= 1) return { family: raw, given: "" };
-    const prefixes = new Set([
-      "van",
-      "von",
-      "de",
-      "del",
-      "der",
-      "di",
-      "la",
-      "le",
-      "el",
-      "al",
-      "bin",
-      "ibn",
-    ]);
-    let splitAt = parts.length - 1;
-    while (splitAt > 1 && prefixes.has(parts[splitAt - 1].toLowerCase())) {
-      splitAt--;
-    }
-    return {
-      family: parts.slice(splitAt).join(" "),
-      given: parts.slice(0, splitAt).join(" "),
-    };
-  }
-
   private normalize(item: any): CanonicalRecord {
-    const authors = (item.authorships || []).map((a: any) => {
-      const raw = a.author?.display_name || "";
-      const parsed = this.parseAuthorName(raw);
-      return { ...parsed, raw };
-    });
+    const authors = (item.authorships || []).map((a: any) =>
+      parseAuthorName(a.author?.display_name || ""),
+    );
 
     const identifiers: Identifier = {};
     if (item.doi) identifiers.doi = item.doi.replace("https://doi.org/", "");

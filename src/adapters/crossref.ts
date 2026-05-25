@@ -5,7 +5,7 @@ import {
   SearchQuery,
   PluginPrefs,
 } from "../types";
-import { politeFetch } from "../http";
+import { fetchJSON, safeString, safeArray, safeGet } from "../http";
 
 export class CrossrefAdapter implements SourceAdapter {
   id = "crossref";
@@ -37,14 +37,12 @@ export class CrossrefAdapter implements SourceAdapter {
 
     try {
       const timeout = prefs["behavior.timeout_sec"] || 10;
-      const response = await politeFetch(
+      const data = await fetchJSON(
         `https://api.crossref.org/works/${encodeURIComponent(identifier.doi)}`,
         { headers: this.getHeaders(prefs) },
         timeout,
       );
-      if (!response.ok) return null;
-
-      const data = await response.json();
+      if (!data?.message) return null;
       return this.normalize(data.message);
     } catch (e) {
       Zotero.debug(`ReferenceValidator: Crossref getById failed - ${e}`);
@@ -58,7 +56,6 @@ export class CrossrefAdapter implements SourceAdapter {
   ): Promise<CanonicalRecord[]> {
     if (!query.title) return [];
 
-    // Simple title search for demonstration
     try {
       const url = new URL("https://api.crossref.org/works");
       url.searchParams.append("query.title", query.title);
@@ -66,16 +63,13 @@ export class CrossrefAdapter implements SourceAdapter {
         url.searchParams.append("query.author", query.authors[0]);
       }
       const timeout = prefs["behavior.timeout_sec"] || 10;
-      const response = await politeFetch(
+      const data = await fetchJSON(
         url.toString(),
         { headers: this.getHeaders(prefs) },
         timeout,
       );
-      if (!response.ok) return [];
-      const data = await response.json();
-      return (data.message.items || [])
-        .map((item: any) => this.normalize(item))
-        .slice(0, 5);
+      const items = safeArray(safeGet(data, "message", "items"));
+      return items.map((item: any) => this.normalize(item)).slice(0, 5);
     } catch (e) {
       Zotero.debug(`ReferenceValidator: Crossref search failed - ${e}`);
       return [];
@@ -83,39 +77,53 @@ export class CrossrefAdapter implements SourceAdapter {
   }
 
   private normalize(item: any): CanonicalRecord {
-    const authors = (item.author || []).map((a: any) => ({
-      family: a.family || "",
-      given: a.given || "",
-      raw: `${a.given || ""} ${a.family || ""}`.trim(),
-    }));
-
-    let year: number | undefined;
-    if (
-      item.published &&
-      item.published["date-parts"] &&
-      item.published["date-parts"][0]
-    ) {
-      year = item.published["date-parts"][0][0];
+    if (!item || typeof item !== "object") {
+      return this.emptyRecord(item);
     }
 
+    const authors = safeArray(item.author).map((a: any) => ({
+      family: safeString(a?.family),
+      given: safeString(a?.given),
+      raw: `${safeString(a?.given)} ${safeString(a?.family)}`.trim(),
+    }));
+
+    const dateParts = safeGet(item, "published", "date-parts", "0");
+    const year = Array.isArray(dateParts) ? dateParts[0] : undefined;
+
+    const containerTitle = safeArray(item["container-title"]);
+
     return {
-      identifiers: { doi: item.DOI },
-      title: item.title?.length > 0 ? item.title[0] : "",
+      identifiers: { doi: safeString(item.DOI) },
+      title: safeString(safeArray(item.title)[0]),
       authors,
-      year,
-      venue: item["container-title"]
-        ? {
-            name: item["container-title"][0],
-            type: this.mapVenueType(item.type),
-            volume: item.volume,
-            issue: item.issue,
-            pages: item.page,
-          }
-        : undefined,
+      year: typeof year === "number" ? year : undefined,
+      venue:
+        containerTitle.length > 0
+          ? {
+              name: safeString(containerTitle[0]),
+              type: this.mapVenueType(item.type),
+              volume: item.volume,
+              issue: item.issue,
+              pages: item.page,
+            }
+          : undefined,
       source: this.id,
-      sourceUrl: item.URL || `https://doi.org/${item.DOI}`,
-      confidence: 1.0, // Directly from Crossref via DOI
+      sourceUrl:
+        safeString(item.URL) || `https://doi.org/${safeString(item.DOI)}`,
+      confidence: 1.0,
       rawResponse: item,
+    };
+  }
+
+  private emptyRecord(raw: any): CanonicalRecord {
+    return {
+      identifiers: {},
+      title: "",
+      authors: [],
+      source: this.id,
+      sourceUrl: "",
+      confidence: 0,
+      rawResponse: raw,
     };
   }
 

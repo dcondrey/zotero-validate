@@ -12,17 +12,85 @@ export interface ZoteroItemMock {
   }>;
 }
 
+function stripLatex(input: string): string {
+  let result = "";
+  let i = 0;
+  while (i < input.length) {
+    if (input[i] === "\\") {
+      i++;
+      if (i >= input.length) break;
+      if (input[i] === "{" || input[i] === "}") {
+        i++;
+        continue;
+      }
+      let cmd = "";
+      while (i < input.length && input[i] >= "a" && input[i] <= "z") {
+        cmd += input[i];
+        i++;
+      }
+      if (i < input.length && input[i] === "{") {
+        let depth = 1;
+        i++;
+        let content = "";
+        while (i < input.length && depth > 0) {
+          if (input[i] === "{") depth++;
+          else if (input[i] === "}") depth--;
+          if (depth > 0) content += input[i];
+          i++;
+        }
+        result += content;
+      } else if (cmd.length > 0) {
+        result += " ";
+      } else {
+        result += input[i] || "";
+        i++;
+      }
+    } else if (input[i] === "{" || input[i] === "}") {
+      i++;
+    } else if (input[i] === "$") {
+      i++;
+      while (i < input.length && input[i] !== "$") {
+        result += input[i];
+        i++;
+      }
+      if (i < input.length) i++;
+    } else {
+      result += input[i];
+      i++;
+    }
+  }
+  return result;
+}
+
+const SMART_QUOTES: Record<string, string> = {
+  "\u2018": "'",
+  "\u2019": "'",
+  "\u201C": '"',
+  "\u201D": '"',
+};
+const DASHES = new Set([
+  "\u2010",
+  "\u2011",
+  "\u2012",
+  "\u2013",
+  "\u2014",
+  "\u2015",
+]);
+
 function normalizeTitle(title: string): string {
   if (!title) return "";
-  return title
-    .replace(/\\(emph|textit|textbf)\{([^}]+)\}/g, "$2") // Strip simple LaTeX
-    .replace(/[\u2018\u2019]/g, "'") // Smart quotes to ASCII
-    .replace(/[\u201C\u201D]/g, '"')
-    .replace(/[\u2010\u2011\u2012\u2013\u2014\u2015]/g, "-") // Dashes to ASCII
-    .replace(/\s+/g, " ") // Collapse whitespace
+  let s = stripLatex(title);
+  let out = "";
+  for (const ch of s) {
+    if (SMART_QUOTES[ch]) out += SMART_QUOTES[ch];
+    else if (DASHES.has(ch)) out += "-";
+    else out += ch;
+  }
+  return out
+    .replace(/\s+/g, " ")
     .trim()
     .toLowerCase()
-    .replace(/[.,:;!?]$/, ""); // Strip trailing punctuation
+    .replace(/[.,:;!?]$/, "");
 }
 
 function levenshteinRatio(s1: string, s2: string): number {
@@ -139,10 +207,19 @@ export function compareIdentifiers(
 ): boolean {
   if (!zId || !sId) return false;
   if (type === "doi") {
-    return (
-      zId.toLowerCase().replace(/^https?:\/\/(dx\.)?doi\.org\//, "") ===
-      sId.toLowerCase().replace(/^https?:\/\/(dx\.)?doi\.org\//, "")
-    );
+    const stripDoiPrefix = (id: string): string => {
+      const lower = id.toLowerCase();
+      for (const prefix of [
+        "https://doi.org/",
+        "http://doi.org/",
+        "https://dx.doi.org/",
+        "http://dx.doi.org/",
+      ]) {
+        if (lower.startsWith(prefix)) return lower.slice(prefix.length);
+      }
+      return lower;
+    };
+    return stripDoiPrefix(zId) === stripDoiPrefix(sId);
   }
   if (type === "isbn") {
     const cleanZ = zId.replace(/-/g, "");
@@ -219,8 +296,14 @@ export function compareRecords(
   const zDate = item.getField("date");
   let zYear: number | undefined;
   if (zDate) {
-    const match = zDate.match(/\d{4}/);
-    if (match) zYear = parseInt(match[0], 10);
+    const parsed = Date.parse(zDate);
+    if (!isNaN(parsed)) {
+      zYear = new Date(parsed).getFullYear();
+    } else {
+      const digits = zDate.slice(0, 4);
+      const num = parseInt(digits, 10);
+      if (num >= 1000 && num <= 9999) zYear = num;
+    }
   }
 
   if (!zYear && !record.year) diffs.push({ field: "year", status: "match" });

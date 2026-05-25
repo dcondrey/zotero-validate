@@ -1,3 +1,4 @@
+import { parseAuthorName, parseYear } from "./utils";
 import {
   SourceAdapter,
   Identifier,
@@ -83,9 +84,7 @@ export class DblpAdapter implements SourceAdapter {
 
     const authors = rawAuthors.map((a: any) => {
       const name = typeof a === "string" ? a : a.text || "";
-      const parts = name.trim().split(/\s+/);
-      const family = parts.length > 1 ? parts.pop() || "" : name;
-      return { family, given: parts.join(" "), raw: name };
+      return parseAuthorName(name);
     });
 
     return {
@@ -95,7 +94,7 @@ export class DblpAdapter implements SourceAdapter {
       },
       title: info.title || "",
       authors,
-      year: info.year ? parseInt(info.year, 10) : undefined,
+      year: parseYear(info.year),
       venue: info.venue
         ? {
             name: info.venue,

@@ -18,9 +18,6 @@ import { compareRecords, ZoteroItemMock } from "./comparison";
 import { classify, ClassificationResult } from "./classifier";
 import { LLMClient } from "./llm";
 
-// ==========================================
-// 1. PLACE THE RATE LIMITER HERE (Outside)
-// ==========================================
 class TokenBucketRateLimiter {
   private queue: (() => void)[] = [];
   private activeConnections = 0;
@@ -92,9 +89,6 @@ class TokenBucketRateLimiter {
   }
 }
 
-// ==========================================
-// 2. YOUR MAIN ORCHESTRATOR CLASS
-// ==========================================
 export class Orchestrator {
   private adapters: SourceAdapter[] = [
     new CrossrefAdapter(),
@@ -187,11 +181,22 @@ export class Orchestrator {
     }
 
     const extra = item.getField("extra") || "";
-    const pmidMatch = extra.match(/PMID:\s*(\d{1,10})\b/i);
-    if (pmidMatch) id.pmid = pmidMatch[1];
-
-    const arxivMatch = extra.match(/arXiv:\s*(\d{4}\.\d{4,5}(?:v\d+)?)\b/i);
-    if (arxivMatch) id.arxivId = arxivMatch[1];
+    const lines: string[] = extra.split("\n");
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!id.pmid && trimmed.toUpperCase().startsWith("PMID:")) {
+        const val = trimmed.slice(5).trim();
+        if (val.length > 0 && val.length <= 10 && /^\d+$/.test(val)) {
+          id.pmid = val;
+        }
+      }
+      if (!id.arxivId && trimmed.toLowerCase().startsWith("arxiv:")) {
+        const val = trimmed.slice(6).trim();
+        if (/^\d{4}\.\d{4,5}(v\d+)?$/.test(val)) {
+          id.arxivId = val;
+        }
+      }
+    }
 
     return id;
   }
@@ -206,9 +211,12 @@ export class Orchestrator {
     const extra = item.getField("extra") || "";
     if (!force && extra.includes("ReferenceValidator:")) {
       try {
-        const reportMatch = extra.match(/^ReferenceValidator:\s*(\{.*\})$/m);
-        if (!reportMatch) throw new Error("no report found");
-        const report = JSON.parse(reportMatch[1]);
+        const reportLine = extra
+          .split("\n")
+          .find((line: string) => line.startsWith("ReferenceValidator:"));
+        if (!reportLine) throw new Error("no report found");
+        const jsonStr = reportLine.slice("ReferenceValidator:".length).trim();
+        const report = JSON.parse(jsonStr);
         if (
           report === null ||
           typeof report !== "object" ||

@@ -1,3 +1,4 @@
+import { parseAuthorName, parseDateYear } from "./utils";
 import {
   SourceAdapter,
   Identifier,
@@ -68,18 +69,11 @@ export class OpenLibraryAdapter implements SourceAdapter {
   }
 
   private transformBook(isbn: string, raw: any): CanonicalRecord {
-    const authors = (raw.authors || []).map((a: any) => {
-      const name = a.name || "";
-      const parts = name.trim().split(/\s+/);
-      const family = parts.length > 1 ? parts.pop() || "" : name;
-      return { family, given: parts.join(" "), raw: name };
-    });
+    const authors = (raw.authors || []).map((a: any) =>
+      parseAuthorName(a?.name || ""),
+    );
 
-    let year: number | undefined;
-    if (raw.publish_date) {
-      const match = raw.publish_date.match(/\d{4}/);
-      if (match) year = parseInt(match[0], 10);
-    }
+    const year = parseDateYear(raw.publish_date);
 
     return {
       identifiers: {
@@ -105,14 +99,7 @@ export class OpenLibraryAdapter implements SourceAdapter {
 
   private transformSearchDoc(doc: any): CanonicalRecord {
     const rawAuthors = doc.author_name || [];
-    const authors = rawAuthors.map((name: string) => {
-      const parts = name.trim().split(/\s+/);
-      return {
-        family: parts.length > 1 ? parts.pop() || "" : name,
-        given: parts.join(" "),
-        raw: name,
-      };
-    });
+    const authors = rawAuthors.map((name: string) => parseAuthorName(name));
 
     return {
       identifiers: {

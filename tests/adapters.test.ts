@@ -7,6 +7,7 @@ import { OpenLibraryAdapter } from "../src/adapters/openlibrary";
 import { SemanticScholarAdapter } from "../src/adapters/semanticscholar";
 import { PubMedAdapter } from "../src/adapters/pubmed";
 import { AclAnthologyAdapter } from "../src/adapters/aclanthology";
+import { parseAuthorName } from "../src/adapters/utils";
 
 declare global {
   var Zotero: any;
@@ -84,45 +85,45 @@ describe("CrossrefAdapter", () => {
   });
 });
 
-describe("OpenAlexAdapter", () => {
-  describe("parseAuthorName", () => {
-    const adapter = new OpenAlexAdapter();
-
-    it('should handle simple "First Last" names', () => {
-      const result = (adapter as any).parseAuthorName("John Smith");
-      expect(result).toEqual({ family: "Smith", given: "John" });
-    });
-
-    it("should handle comma-separated names", () => {
-      const result = (adapter as any).parseAuthorName("Smith, John");
-      expect(result).toEqual({ family: "Smith", given: "John" });
-    });
-
-    it('should handle "van der" prefix', () => {
-      const result = (adapter as any).parseAuthorName("Jan van der Meer");
-      expect(result.family).toBe("van der Meer");
-      expect(result.given).toBe("Jan");
-    });
-
-    it('should handle "de la" prefix', () => {
-      const result = (adapter as any).parseAuthorName("Francisco de la Cruz");
-      expect(result.family).toBe("de la Cruz");
-      expect(result.given).toBe("Francisco");
-    });
-
-    it("should handle single names", () => {
-      const result = (adapter as any).parseAuthorName("Madonna");
-      expect(result.family).toBe("Madonna");
-      expect(result.given).toBe("");
-    });
-
-    it('should handle "von" prefix', () => {
-      const result = (adapter as any).parseAuthorName("Ludwig von Beethoven");
-      expect(result.family).toBe("von Beethoven");
-      expect(result.given).toBe("Ludwig");
-    });
+describe("parseAuthorName (shared utils)", () => {
+  it('should handle simple "First Last" names', () => {
+    const result = parseAuthorName("John Smith");
+    expect(result.family).toBe("Smith");
+    expect(result.given).toBe("John");
   });
 
+  it("should handle comma-separated names", () => {
+    const result = parseAuthorName("Smith, John");
+    expect(result.family).toBe("Smith");
+    expect(result.given).toBe("John");
+  });
+
+  it('should handle "van der" prefix', () => {
+    const result = parseAuthorName("Jan van der Meer");
+    expect(result.family).toBe("van der Meer");
+    expect(result.given).toBe("Jan");
+  });
+
+  it('should handle "de la" prefix', () => {
+    const result = parseAuthorName("Francisco de la Cruz");
+    expect(result.family).toBe("de la Cruz");
+    expect(result.given).toBe("Francisco");
+  });
+
+  it("should handle single names", () => {
+    const result = parseAuthorName("Madonna");
+    expect(result.family).toBe("Madonna");
+    expect(result.given).toBe("");
+  });
+
+  it('should handle "von" prefix', () => {
+    const result = parseAuthorName("Ludwig von Beethoven");
+    expect(result.family).toBe("von Beethoven");
+    expect(result.given).toBe("Ludwig");
+  });
+});
+
+describe("OpenAlexAdapter", () => {
   describe("normalize", () => {
     const adapter = new OpenAlexAdapter();
 

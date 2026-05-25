@@ -1,3 +1,4 @@
+import { parseAuthorName } from "./utils";
 import {
   SourceAdapter,
   Identifier,
@@ -100,9 +101,7 @@ export class ArxivAdapter implements SourceAdapter {
     const authorElements = entry.getElementsByTagName("author");
     const authors = Array.from(authorElements).map((auth) => {
       const name = auth.getElementsByTagName("name")[0]?.textContent || "";
-      const parts = name.trim().split(/\s+/);
-      const family = parts.length > 1 ? parts.pop() || "" : name;
-      return { family, given: parts.join(" "), raw: name };
+      return parseAuthorName(name);
     });
 
     const publishedStr =

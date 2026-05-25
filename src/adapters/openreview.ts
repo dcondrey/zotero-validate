@@ -1,3 +1,4 @@
+import { parseAuthorName, parseTimestampYear } from "./utils";
 import {
   SourceAdapter,
   Identifier,
@@ -73,18 +74,10 @@ export class OpenReviewAdapter implements SourceAdapter {
       rawAuthors = content.authors.value;
     }
 
-    const authors = rawAuthors.map((name: string) => {
-      const parts = name.trim().split(/\s+/);
-      const family = parts.length > 1 ? parts.pop() || "" : name;
-      return { family, given: parts.join(" "), raw: name };
-    });
+    const authors = rawAuthors.map((name: string) => parseAuthorName(name));
 
-    // Determine the year safely from revision/creation milestones
-    let year: number | undefined;
     const dateTs = note.mdate || note.tcdate;
-    if (dateTs) {
-      year = new Date(dateTs < 1e12 ? dateTs * 1000 : dateTs).getFullYear();
-    }
+    const year = parseTimestampYear(dateTs);
 
     const venueName =
       typeof content.venue?.value === "string"
