@@ -31,6 +31,24 @@ describe("comparison engine", () => {
       ).toBe(true);
     });
 
+    it("should enforce the Levenshtein threshold at the boundary", () => {
+      expect(compareTitles("abcdefghijklmnopqrst", "abcdefghijklmnopqrsx")).toBe(
+        true,
+      );
+      expect(compareTitles("abcdefghijklmnopqrs", "abcdefghijklmnopqrx")).toBe(
+        false,
+      );
+    });
+
+    it("should normalize unicode dashes and smart quotes", () => {
+      expect(
+        compareTitles(
+          "A Study\u2014With \u201cQuotes\u201d",
+          'A Study-With "Quotes"',
+        ),
+      ).toBe(true);
+    });
+
     it("should fail on major differences", () => {
       expect(compareTitles("Hello World", "Goodbye World")).toBe(false);
     });
@@ -113,7 +131,24 @@ describe("comparison engine", () => {
       );
       expect(
         compareIdentifiers("2301.12345v1", "2301.12345v2", "arxivId"),
-      ).toBe(false);
+      ).toBe(true);
+    });
+
+    it("should normalize arXiv URL and prefix wrappers", () => {
+      expect(
+        compareIdentifiers(
+          "https://arxiv.org/abs/2301.12345v2",
+          "arXiv:2301.12345",
+          "arxivId",
+        ),
+      ).toBe(true);
+      expect(
+        compareIdentifiers(
+          "https://arxiv.org/pdf/2301.12345v1.pdf",
+          "2301.12345v3",
+          "arxivId",
+        ),
+      ).toBe(true);
     });
 
     it("should match ISBN-10 to ISBN-13 via 978 prefix", () => {
@@ -136,6 +171,21 @@ describe("comparison engine", () => {
         compareIdentifiers("978-0-12-345678-9", "9780123456789", "isbn"),
       ).toBe(true);
     });
+
+    it("should match ISBN-10 with X check digit and formatting", () => {
+      expect(compareIdentifiers("9780804429573", "0-8044-2957-X", "isbn")).toBe(
+        true,
+      );
+      expect(
+        compareIdentifiers("0 8044 2957 X", "978-0-8044-2957-3", "isbn"),
+      ).toBe(true);
+    });
+  });
+
+  it("should normalize unicode escaped accented author names", () => {
+    const zAuthors = [{ firstName: "Jos\u00e9", lastName: "Garc\u00eda" }];
+    const sAuthors = [{ given: "Jose", family: "Garcia", raw: "" }];
+    expect(compareAuthors(zAuthors, sAuthors as any).status).toBe("match");
   });
 
   describe("edge cases", () => {

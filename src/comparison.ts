@@ -222,8 +222,8 @@ export function compareIdentifiers(
     return stripDoiPrefix(zId) === stripDoiPrefix(sId);
   }
   if (type === "isbn") {
-    const cleanZ = zId.replace(/-/g, "");
-    const cleanS = sId.replace(/-/g, "");
+    const cleanZ = zId.replace(/[^0-9X]/gi, "").toUpperCase();
+    const cleanS = sId.replace(/[^0-9X]/gi, "").toUpperCase();
     if (cleanZ === cleanS) return true;
     if (cleanZ.length === 13 && cleanS.length === 10) {
       return (
@@ -239,11 +239,17 @@ export function compareIdentifiers(
   }
   // arxivId versions
   if (type === "arxivId") {
-    const [baseZ, vZ] = zId.split("v");
-    const [baseS, vS] = sId.split("v");
-    if (baseZ !== baseS) return false;
-    if (vZ && vS && vZ !== vS) return false; // Mismatch version but both exist
-    return true; // Match base, or one lacks version
+    const normalizeArxivId = (id: string): string => {
+      let normalized = id.trim().toLowerCase();
+      const urlMatch = normalized.match(/arxiv\.org\/(?:abs|pdf)\/([^?#]+)/);
+      if (urlMatch) normalized = urlMatch[1];
+      normalized = normalized
+        .replace(/^arxiv:/, "")
+        .replace(/\.pdf$/, "")
+        .replace(/v\d+$/, "");
+      return normalized;
+    };
+    return normalizeArxivId(zId) === normalizeArxivId(sId);
   }
   return zId === sId;
 }
