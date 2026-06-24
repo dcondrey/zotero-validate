@@ -1,23 +1,9 @@
 # Zotero Reference Validator
+
 [![CI](https://github.com/dcondrey/zotero-validate/actions/workflows/ci.yml/badge.svg)](https://github.com/dcondrey/zotero-validate/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-
 A Zotero 10 plugin that validates reference metadata against 16 scholarly sources to ensure your library is accurate. Cross-references each item against authoritative databases, flags discrepancies, suggests corrections, and optionally uses LLM-based semantic adjudication for ambiguous cases.
-
-## Features
-
-- **Multi-source verification** -- validates against up to 16 scholarly databases simultaneously
-- **Global reference library** -- validated references are cached locally with compressed storage, usage tracking, and a dedicated viewer UI
-- **Tiered classification** -- items are marked VERIFIED, VERIFIED WITH CORRECTIONS, or FLAGGED based on cross-source consensus
-- **Smart comparison** -- order-agnostic author matching, two-row Levenshtein title similarity, ISBN-10/13 normalization, arXiv version handling
-- **Polymorphic field validation** -- checks volume/issue/pages for journal articles, publisher for books, based on item type
-- **LLM fallback** -- optional semantic adjudication via OpenAI, Anthropic, or Google Gemini with structured JSON output
-- **Batch processing** -- validate entire collections with native Zotero progress feedback and fault-tolerant execution
-- **Per-adapter rate limiting** -- token bucket algorithm with FIFO queue and processing lock respects each API's rate limits
-- **In-flight deduplication** -- duplicate items in a batch share a single network request
-- **Freshness caching** -- skips recently validated items (configurable window, default 90 days)
-- **Auto-updates** -- plugin checks for new versions automatically via GitHub releases
 
 ## Installation
 
@@ -35,7 +21,25 @@ The plugin will check for updates automatically.
 4. View results in the validation summary window. The **Details** column shows diagnostic information including any source errors.
 5. Access the **Validated References Library** from the right-click menu to browse all validated items, revalidate, or remove entries.
 
-## Supported Sources
+<details>
+<summary><strong>Features</strong> -- multi-source verification, LLM fallback, batch processing, auto-updates</summary>
+
+- **Multi-source verification** -- validates against up to 16 scholarly databases simultaneously
+- **Global reference library** -- validated references are cached locally with compressed storage, usage tracking, and a dedicated viewer UI
+- **Tiered classification** -- items are marked VERIFIED, VERIFIED WITH CORRECTIONS, or FLAGGED based on cross-source consensus
+- **Smart comparison** -- order-agnostic author matching, two-row Levenshtein title similarity, ISBN-10/13 normalization, arXiv version handling
+- **Polymorphic field validation** -- checks volume/issue/pages for journal articles, publisher for books, based on item type
+- **LLM fallback** -- optional semantic adjudication via OpenAI, Anthropic, or Google Gemini with structured JSON output
+- **Batch processing** -- validate entire collections with native Zotero progress feedback and fault-tolerant execution
+- **Per-adapter rate limiting** -- token bucket algorithm with FIFO queue and processing lock respects each API's rate limits
+- **In-flight deduplication** -- duplicate items in a batch share a single network request
+- **Freshness caching** -- skips recently validated items (configurable window, default 90 days)
+- **Auto-updates** -- plugin checks for new versions automatically via GitHub releases
+
+</details>
+
+<details>
+<summary><strong>Supported Sources</strong> -- 16 scholarly databases across three tiers</summary>
 
 ### Tier 1 (Authoritative)
 
@@ -70,18 +74,10 @@ The plugin will check for updates automatically.
 
 **Tier 1** and **Tier 2** sources contribute to the verification threshold. The default minimum is 2 agreeing sources. Tier 3 sources provide supplementary metadata.
 
-## Global Reference Library
+</details>
 
-Validated references are automatically saved to a local library stored in your Zotero data directory. The library:
-
-- **Caches validation results** -- subsequent validations of the same reference skip remote API calls entirely if the cached result is fresh
-- **Compresses automatically** -- uses gzip compression when the library exceeds 500 entries
-- **Tracks usage** -- records how many times each reference has been used and in which collections/papers
-- **Supports manual management** -- view, revalidate, or remove entries from the library viewer (right-click menu > "View Validated References Library")
-
-The library viewer displays each entry's validation status, title, identifier, validation date, usage count, associated papers, and provides Revalidate and Remove buttons.
-
-## How It Works
+<details>
+<summary><strong>How It Works</strong> -- classification, LLM adjudication, validation pipeline</summary>
 
 ### Classification
 
@@ -148,7 +144,10 @@ Persist: tags + report in extra field (mutation-shielded)
 Add to global reference library (with usage tracking)
 ```
 
-## Configuration
+</details>
+
+<details>
+<summary><strong>Configuration</strong> -- source emails, API keys, freshness window, LLM adjudication</summary>
 
 All settings are accessible from **Zotero Preferences > Reference Validator**.
 
@@ -171,18 +170,24 @@ All settings are accessible from **Zotero Preferences > Reference Validator**.
 - **Dataset/software citations**: DataCite is enabled by default for non-journal DOIs.
 - **Large batch validation**: Increase the request timeout if you experience rate limiting.
 
-## Troubleshooting
+</details>
 
-| Symptom | Cause | Fix |
-|---------|-------|-----|
-| All items FLAGGED | Only 1 adapter returning results | Check network; add email for polite pool; lower min_sources to 1 |
-| Validation hangs | API timeout | Increase `behavior.timeout_sec` in preferences |
-| "Errors: Crossref: AbortError" | Request timed out | Increase timeout or reduce batch size |
-| Duplicate menu items | Plugin re-enabled without restart | Restart Zotero (fixed in v0.1.0+) |
-| Preferences don't save | Missing preference binding | Update to latest version |
-| Library file growing large | Many validated references | Library auto-compresses above 500 entries |
+<details>
+<summary><strong>Global Reference Library</strong> -- local cache, compressed storage, usage tracking</summary>
 
-## Development
+Validated references are automatically saved to a local library stored in your Zotero data directory. The library:
+
+- **Caches validation results** -- subsequent validations of the same reference skip remote API calls entirely if the cached result is fresh
+- **Compresses automatically** -- uses gzip compression when the library exceeds 500 entries
+- **Tracks usage** -- records how many times each reference has been used and in which collections/papers
+- **Supports manual management** -- view, revalidate, or remove entries from the library viewer (right-click menu > "View Validated References Library")
+
+The library viewer displays each entry's validation status, title, identifier, validation date, usage count, associated papers, and provides Revalidate and Remove buttons.
+
+</details>
+
+<details>
+<summary><strong>Development</strong> -- build, test, project structure</summary>
 
 ### Prerequisites
 
@@ -261,7 +266,10 @@ tests/
   classifier.test.ts    Classification thresholds and edge cases
 ```
 
-## Architecture
+</details>
+
+<details>
+<summary><strong>Architecture</strong> -- rate limiting, deduplication, mutation shield, confidence calibration</summary>
 
 ### Rate Limiting
 
@@ -282,6 +290,19 @@ Each adapter returns a confidence score with its results. ID-based lookups (DOI,
 ### Cross-Identifier Extraction
 
 When an adapter fetches a record by DOI, it also extracts secondary identifiers (PMID, arXiv ID, ISBN) from the response. These enriched identifiers enable downstream adapters to perform their own direct lookups rather than falling back to title search.
+
+</details>
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| All items FLAGGED | Only 1 adapter returning results | Check network; add email for polite pool; lower min_sources to 1 |
+| Validation hangs | API timeout | Increase `behavior.timeout_sec` in preferences |
+| "Errors: Crossref: AbortError" | Request timed out | Increase timeout or reduce batch size |
+| Duplicate menu items | Plugin re-enabled without restart | Restart Zotero (fixed in v0.1.0+) |
+| Preferences don't save | Missing preference binding | Update to latest version |
+| Library file growing large | Many validated references | Library auto-compresses above 500 entries |
 
 ## Security and Privacy
 
