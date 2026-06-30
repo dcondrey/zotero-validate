@@ -254,4 +254,67 @@ describe("Orchestrator", () => {
       );
     });
   });
+
+  describe("phase-2 identifier enrichment", () => {
+    it("re-queries a missed adapter with an identifier discovered in phase 1", async () => {
+      const DOI = "10.5555/qet";
+      const calledUrls: string[] = [];
+      const jsonResp = (body: unknown) =>
+        new Response(JSON.stringify(body), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+
+      global.fetch = vi.fn((url: string) => {
+        calledUrls.push(String(url));
+        if (String(url).includes("api.crossref.org") && url.includes("query")) {
+          // Phase 1: title search yields a record carrying a DOI.
+          return Promise.resolve(
+            jsonResp({
+              message: {
+                items: [
+                  {
+                    DOI,
+                    title: ["Quantum Enrichment Test"],
+                    author: [{ family: "Doe", given: "J" }],
+                    type: "journal-article",
+                  },
+                ],
+              },
+            }),
+          );
+        }
+        if (String(url).includes("opencitations.net")) {
+          return Promise.resolve(
+            jsonResp([
+              {
+                id: `doi:${DOI}`,
+                title: "Quantum Enrichment Test",
+                author: "Doe, J",
+                pub_date: "2021",
+              },
+            ]),
+          );
+        }
+        return Promise.resolve(new Response("", { status: 404 }));
+      }) as any;
+
+      const item = mockItem({ title: "Quantum Enrichment Test" }, [
+        { lastName: "Doe", fieldMode: 0 },
+      ]);
+      const orch = new Orchestrator(() => ({
+        ...ALL_DISABLED,
+        "sources.crossref.enabled": true,
+        "sources.opencitations.enabled": true,
+      }));
+      await orch.validateItem(item);
+
+      // OpenCitations has no search endpoint and the item had no DOI, so it can
+      // only have been queried in phase 2 using the DOI Crossref surfaced.
+      const ocCall = calledUrls.find(
+        (u) => u.includes("opencitations.net") && u.includes(DOI),
+      );
+      expect(ocCall).toBeTruthy();
+    });
+  });
 });

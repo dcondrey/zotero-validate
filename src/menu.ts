@@ -1,6 +1,7 @@
 import { Orchestrator } from "./orchestrator";
 import { showResultsWindow } from "./ui";
 import { showLibraryWindow, syncLibraryCollection } from "./library-ui";
+import { canValidateItem } from "./can-validate";
 
 const PREF_BRANCH = "extensions.zotero.reference-validator.";
 const PREF_KEYS = [
@@ -131,15 +132,7 @@ export class MenuManager {
         const collection = zp.getSelectedCollection();
         if (!collection) return;
         const items = collection.getChildItems(false);
-        const validatable = items.filter((item: any) => {
-          const hasStrongId =
-            item.getField("DOI") ||
-            item.getField("ISBN") ||
-            item.getField("extra")?.includes("PMID");
-          const hasTitleAndAuthor =
-            item.getField("title") && item.getCreators().length > 0;
-          return hasStrongId || hasTitleAndAuthor;
-        });
+        const validatable = items.filter((item: any) => canValidateItem(item));
         if (validatable.length > 0) {
           this.runValidation(validatable, false);
         }
@@ -150,16 +143,7 @@ export class MenuManager {
     menuPopup.addEventListener("popupshowing", () => {
       const items = Zotero.getActiveZoteroPane().getSelectedItems();
       const canValidate =
-        items.length > 0 &&
-        items.every((item: any) => {
-          const hasStrongId =
-            item.getField("DOI") ||
-            item.getField("ISBN") ||
-            item.getField("extra")?.includes("PMID");
-          const hasTitleAndAuthor =
-            item.getField("title") && item.getCreators().length > 0;
-          return hasStrongId || hasTitleAndAuthor;
-        });
+        items.length > 0 && items.every((item: any) => canValidateItem(item));
 
       if (canValidate) {
         menuItem.removeAttribute("disabled");
