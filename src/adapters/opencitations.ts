@@ -6,7 +6,7 @@ import {
   PluginPrefs,
   CanonicalRecord,
 } from "../types";
-import { fetchJSON, safeString, safeArray, safeGet } from "../http";
+import { fetchJSON, safeString, safeArray } from "../http";
 
 export class OpenCitationsAdapter implements SourceAdapter {
   id = "opencitations";

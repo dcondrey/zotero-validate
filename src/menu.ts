@@ -1,6 +1,6 @@
 import { Orchestrator } from "./orchestrator";
 import { showResultsWindow } from "./ui";
-import { showLibraryWindow } from "./library-ui";
+import { showLibraryWindow, syncLibraryCollection } from "./library-ui";
 
 const PREF_BRANCH = "extensions.zotero.reference-validator.";
 const PREF_KEYS = [
@@ -29,8 +29,11 @@ const PREF_KEYS = [
   "behavior.timeout_sec",
   "behavior.max_concurrent",
   "llm.openai.key",
+  "llm.openai.model",
   "llm.anthropic.key",
+  "llm.anthropic.model",
   "llm.gemini.key",
+  "llm.gemini.model",
 ];
 
 export class MenuManager {
@@ -104,44 +107,45 @@ export class MenuManager {
     libraryMenuItem.setAttribute("label", "View Validated References Library");
     libraryMenuItem.addEventListener("command", () => {
       const library = this.orchestrator.getLibrary();
-      showLibraryWindow(library, async (entry) => {
-        const fakeItem = {
-          getField: (f: string) => {
-            if (f === "title") return entry.title;
-            if (f === "DOI") return entry.identifiers.doi || "";
-            if (f === "ISBN") return entry.identifiers.isbn || "";
-            if (f === "extra") {
-              const parts: string[] = [];
-              if (entry.identifiers.pmid)
-                parts.push(`PMID: ${entry.identifiers.pmid}`);
-              if (entry.identifiers.arxivId)
-                parts.push(`arXiv: ${entry.identifiers.arxivId}`);
-              return parts.join("\n");
-            }
-            return "";
-          },
-          getCreators: () =>
-            entry.canonicalRecord.authors.map((a) => ({
-              firstName: a.given,
-              lastName: a.family,
-              fieldMode: 0,
-            })),
-          getTags: () => [],
-          addTag: () => {},
-          removeTag: () => {},
-          setField: () => {},
-          saveTx: () => Promise.resolve(),
-          save: () => Promise.resolve(),
-          getCollections: () => [],
-          id: 0,
-          key: "",
-        };
-        const result = await this.orchestrator.validateItem(fakeItem, true);
-        entry.validationResult = result;
-        entry.validatedAt = Date.now();
-      });
+      showLibraryWindow(library);
     });
     menuPopup.appendChild(libraryMenuItem);
+
+    // Collection context menu
+    const collectionMenu = doc.getElementById("zotero-collectionmenu");
+    if (
+      collectionMenu &&
+      !doc.getElementById("zotero-reference-validator-collection-menu-item")
+    ) {
+      const collMenuItem = doc.createXULElement("menuitem");
+      collMenuItem.setAttribute(
+        "id",
+        "zotero-reference-validator-collection-menu-item",
+      );
+      collMenuItem.setAttribute(
+        "label",
+        "Validate All References in Collection",
+      );
+      collMenuItem.addEventListener("command", async () => {
+        const zp = Zotero.getActiveZoteroPane();
+        const collection = zp.getSelectedCollection();
+        if (!collection) return;
+        const items = collection.getChildItems(false);
+        const validatable = items.filter((item: any) => {
+          const hasStrongId =
+            item.getField("DOI") ||
+            item.getField("ISBN") ||
+            item.getField("extra")?.includes("PMID");
+          const hasTitleAndAuthor =
+            item.getField("title") && item.getCreators().length > 0;
+          return hasStrongId || hasTitleAndAuthor;
+        });
+        if (validatable.length > 0) {
+          this.runValidation(validatable, false);
+        }
+      });
+      collectionMenu.appendChild(collMenuItem);
+    }
 
     menuPopup.addEventListener("popupshowing", () => {
       const items = Zotero.getActiveZoteroPane().getSelectedItems();
@@ -178,6 +182,9 @@ export class MenuManager {
     doc.getElementById("zotero-reference-validator-force-menu-item")?.remove();
     doc
       .getElementById("zotero-reference-validator-library-menu-item")
+      ?.remove();
+    doc
+      .getElementById("zotero-reference-validator-collection-menu-item")
       ?.remove();
   }
 
@@ -223,5 +230,6 @@ export class MenuManager {
     progress.setText(`Done: ${results.length} items validated`);
     pw.startCloseTimer(4000);
     showResultsWindow(results);
+    syncLibraryCollection(this.orchestrator.getLibrary());
   }
 }

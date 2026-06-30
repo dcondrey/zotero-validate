@@ -16,3 +16,26 @@
 .prefs-section input[type="password"] {
     width: 300px;
 }
+
+.prefs-section h3 {
+    font-size: 0.9em;
+    color: #555;
+    margin: 0.8em 0 0.4em;
+}
+
+.source-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 2px 12px;
+    padding-left: 0.5em;
+}
+
+.source-grid label {
+    margin-bottom: 0.3em;
+}
+
+.pref-hint {
+    font-size: 0.85em;
+    color: #777;
+    margin: -0.2em 0 0.8em 0;
+}

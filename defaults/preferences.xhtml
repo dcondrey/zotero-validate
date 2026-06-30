@@ -7,38 +7,82 @@
     <div class="zotero-preferences-pane">
         <h2>Scholarly Source Credentials</h2>
         <div class="prefs-section">
-            <label>Crossref Email (Polite Pool): <input type="text" data-pref="sources.crossref.email" /></label><br/>
-            <label>OpenAlex Email (Polite Pool): <input type="text" data-pref="sources.openalex.email" /></label><br/>
-            <label>Semantic Scholar API Key: <input type="password" data-pref="sources.semanticscholar.key" /></label><br/>
+            <label>Crossref / OpenAlex / Unpaywall Email (Polite Pool):
+                <input type="text" data-pref="sources.crossref.email" placeholder="your@email.com" />
+            </label><br/>
+            <p class="pref-hint">This email is shared across Crossref, OpenAlex, and Unpaywall for polite-pool access.</p>
+            <label>Semantic Scholar API Key:
+                <input type="password" data-pref="sources.semanticscholar.key" />
+            </label><br/>
+        </div>
+
+        <h2>Enabled Sources</h2>
+        <div class="prefs-section">
+            <h3>Tier 1 (Authoritative)</h3>
+            <div class="source-grid">
+                <label><input type="checkbox" data-pref="sources.crossref.enabled" /> Crossref</label>
+                <label><input type="checkbox" data-pref="sources.openalex.enabled" /> OpenAlex</label>
+                <label><input type="checkbox" data-pref="sources.semanticscholar.enabled" /> Semantic Scholar</label>
+                <label><input type="checkbox" data-pref="sources.arxiv.enabled" /> arXiv</label>
+                <label><input type="checkbox" data-pref="sources.pubmed.enabled" /> PubMed</label>
+                <label><input type="checkbox" data-pref="sources.datacite.enabled" /> DataCite</label>
+                <label><input type="checkbox" data-pref="sources.europepmc.enabled" /> Europe PMC</label>
+                <label><input type="checkbox" data-pref="sources.aclanthology.enabled" /> ACL Anthology</label>
+            </div>
+
+            <h3>Tier 2 (Supplementary)</h3>
+            <div class="source-grid">
+                <label><input type="checkbox" data-pref="sources.dblp.enabled" /> DBLP</label>
+                <label><input type="checkbox" data-pref="sources.openreview.enabled" /> OpenReview</label>
+                <label><input type="checkbox" data-pref="sources.openlibrary.enabled" /> Open Library</label>
+                <label><input type="checkbox" data-pref="sources.orcid.enabled" /> ORCID</label>
+            </div>
+
+            <h3>Tier 3 (Supporting)</h3>
+            <div class="source-grid">
+                <label><input type="checkbox" data-pref="sources.opencitations.enabled" /> OpenCitations</label>
+                <label><input type="checkbox" data-pref="sources.unpaywall.enabled" /> Unpaywall</label>
+                <label><input type="checkbox" data-pref="sources.iascholar.enabled" /> Internet Archive Scholar</label>
+                <label><input type="checkbox" data-pref="sources.googlescholar.enabled" /> Google Scholar (stub)</label>
+            </div>
         </div>
 
         <h2>Validation Behavior</h2>
         <div class="prefs-section">
-            <label>Minimum agreeing primary sources for VERIFIED: 
-                <input type="number" min="2" max="4" data-pref="behavior.min_sources" value="2"/>
+            <label>Minimum agreeing primary sources for VERIFIED:
+                <input type="number" min="1" max="8" data-pref="behavior.min_sources" value="2"/>
             </label><br/>
-            <label>Include LLM-assisted semantic verification (Warning: sends metadata to LLM): 
-                <input type="checkbox" data-pref="behavior.use_llm" />
-            </label><br/>
-            <label>Re-validation freshness window (days): 
+            <label>Re-validation freshness window (days):
                 <input type="number" min="1" max="365" data-pref="behavior.freshness_days" value="90"/>
             </label><br/>
             <label>Timeout per source (seconds):
                 <input type="number" min="1" max="60" data-pref="behavior.timeout_sec" value="10"/>
             </label><br/>
+            <label>Max concurrent requests:
+                <input type="number" min="1" max="20" data-pref="behavior.max_concurrent" value="8"/>
+            </label><br/>
         </div>
 
-        <h2>LLM Credentials</h2>
+        <h2>LLM Adjudication</h2>
         <div class="prefs-section">
+            <label>
+                <input type="checkbox" data-pref="behavior.use_llm" />
+                Enable LLM-assisted semantic verification for flagged items
+            </label>
+            <p class="pref-hint">Warning: sends item metadata to the configured LLM provider.</p>
             <label>OpenAI API Key: <input type="password" data-pref="llm.openai.key" /></label><br/>
+            <label>OpenAI Model: <input type="text" data-pref="llm.openai.model" placeholder="gpt-4o-mini" /></label><br/>
             <label>Anthropic API Key: <input type="password" data-pref="llm.anthropic.key" /></label><br/>
+            <label>Anthropic Model: <input type="text" data-pref="llm.anthropic.model" placeholder="claude-haiku-4-5-20251001" /></label><br/>
             <label>Google Gemini API Key: <input type="password" data-pref="llm.gemini.key" /></label><br/>
+            <label>Gemini Model: <input type="text" data-pref="llm.gemini.model" placeholder="gemini-1.5-flash" /></label><br/>
         </div>
 
-        <h2>Privacy</h2>
+        <h2>Data</h2>
         <div class="prefs-section">
-            <p><strong>Note:</strong> Items validated are sent to the configured scholarly sources (and LLM if enabled).</p>
-            <button id="clear-cache-btn">Clear Source Cache</button>
+            <p>Validated references are cached locally. Clear the cache to force re-validation of all items.</p>
+            <button id="clear-cache-btn">Clear Validation Cache</button>
+            <span id="clear-cache-status"></span>
         </div>
     </div>
 </body>

@@ -27,17 +27,17 @@ export class LLMClient {
       provider = "openai";
       apiKey = prefs["llm.openai.key"];
       endpoint = "https://api.openai.com/v1/chat/completions";
-      model = "gpt-4o-mini";
+      model = prefs["llm.openai.model"] || "gpt-4o-mini";
     } else if (prefs["llm.anthropic.key"]) {
       provider = "anthropic";
       apiKey = prefs["llm.anthropic.key"];
       endpoint = "https://api.anthropic.com/v1/messages";
-      model = "claude-haiku-4-5-20251001";
+      model = prefs["llm.anthropic.model"] || "claude-haiku-4-5-20251001";
     } else if (prefs["llm.gemini.key"]) {
       provider = "gemini";
       apiKey = prefs["llm.gemini.key"];
-      endpoint =
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+      model = prefs["llm.gemini.model"] || "gemini-1.5-flash";
+      endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
     } else {
       return null;
     }
@@ -130,7 +130,7 @@ export class LLMClient {
     model: string,
     prompt: string,
   ): Promise<string> {
-    let headers: any = { "Content-Type": "application/json" };
+    const headers: any = { "Content-Type": "application/json" };
     let body: any = {};
 
     if (provider === "openai") {

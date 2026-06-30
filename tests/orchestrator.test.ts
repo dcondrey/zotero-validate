@@ -168,6 +168,49 @@ describe("Orchestrator", () => {
       await orch.validateItem(item);
     });
 
+    it("should extract a DOI stored as a URL into a bare DOI", () => {
+      const orch = new Orchestrator(() => ALL_DISABLED);
+      for (const url of [
+        "https://doi.org/10.1234/abc.def",
+        "http://dx.doi.org/10.1234/abc.def",
+        "  10.1234/abc.def  ",
+      ]) {
+        const item = mockItem({ DOI: url });
+        expect((orch as any).extractIdentifier(item).doi).toBe(
+          "10.1234/abc.def",
+        );
+      }
+    });
+
+    it("should accept ISBN with spaces and an X check digit", () => {
+      const orch = new Orchestrator(() => ALL_DISABLED);
+      expect(
+        (orch as any).extractIdentifier(mockItem({ ISBN: "0 8044 2957 X" }))
+          .isbn,
+      ).toBeTruthy();
+      expect(
+        (orch as any).extractIdentifier(mockItem({ ISBN: "978-0-8044-2957-3" }))
+          .isbn,
+      ).toBeTruthy();
+      expect(
+        (orch as any).extractIdentifier(mockItem({ ISBN: "12345" })).isbn,
+      ).toBeUndefined();
+    });
+
+    it("should extract old-style arXiv identifiers from extra", () => {
+      const orch = new Orchestrator(() => ALL_DISABLED);
+      expect(
+        (orch as any).extractIdentifier(
+          mockItem({ extra: "arXiv: math.GT/0309136" }),
+        ).arxivId,
+      ).toBe("math.GT/0309136");
+      expect(
+        (orch as any).extractIdentifier(
+          mockItem({ extra: "arXiv: 2301.12345v2" }),
+        ).arxivId,
+      ).toBe("2301.12345v2");
+    });
+
     it("should reject malformed DOI and not use it for getById", async () => {
       const fetchMock = vi.fn(() =>
         Promise.resolve({

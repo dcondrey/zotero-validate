@@ -21,7 +21,7 @@ import { UnpaywallAdapter } from "./adapters/unpaywall";
 import { IAScholarAdapter } from "./adapters/iascholar";
 import { OrcidAdapter } from "./adapters/orcid";
 import { GoogleScholarAdapter } from "./adapters/googlescholar";
-import { compareRecords, ZoteroItemMock } from "./comparison";
+import { compareRecords } from "./comparison";
 import { classify, ClassificationResult } from "./classifier";
 import { LLMClient } from "./llm";
 import { GlobalReferenceLibrary } from "./library";
@@ -118,7 +118,10 @@ export class Orchestrator {
   ];
   private llmClient: LLMClient;
   private limiters = new Map<string, TokenBucketRateLimiter>();
-  private inFlightRequests = new Map<string, Promise<CanonicalRecord | null>>();
+  private inFlightRequests = new Map<
+    string,
+    Promise<{ record: CanonicalRecord | null; idBased: boolean }>
+  >();
   private library: GlobalReferenceLibrary;
   static programmaticMutations = new Set<string>();
 
@@ -139,12 +142,22 @@ export class Orchestrator {
     return this.programmaticMutations.has(itemKey);
   }
 
-  private getRequestKey(identifier: Identifier, title?: string): string {
+  private getRequestKey(
+    identifier: Identifier,
+    title?: string,
+    authors?: string[],
+  ): string {
     if (identifier.doi) return `doi:${identifier.doi.toLowerCase()}`;
     if (identifier.pmid) return `pmid:${identifier.pmid}`;
     if (identifier.arxivId) return `arxiv:${identifier.arxivId.toLowerCase()}`;
     if (identifier.isbn) return `isbn:${identifier.isbn}`;
-    if (title) return `title:${title.toLowerCase().trim().slice(0, 100)}`;
+    if (title) {
+      const authorPart =
+        authors && authors.length > 0
+          ? `:${authors[0].toLowerCase().trim()}`
+          : "";
+      return `title:${title.toLowerCase().trim().slice(0, 200)}${authorPart}`;
+    }
     return `nonce:${Date.now()}-${Math.random()}`;
   }
 
@@ -154,24 +167,46 @@ export class Orchestrator {
     title: string,
     authors: string[],
     prefs: PluginPrefs,
-  ): Promise<CanonicalRecord | null> {
-    const key = `${adapter.id}:${this.getRequestKey(identifier, title)}`;
+  ): Promise<{ record: CanonicalRecord | null; idBased: boolean }> {
+    const key = `${adapter.id}:${this.getRequestKey(identifier, title, authors)}`;
 
     if (this.inFlightRequests.has(key)) {
       return this.inFlightRequests.get(key)!;
     }
 
+    const attemptFetch = async (): Promise<{
+      record: CanonicalRecord | null;
+      idBased: boolean;
+    }> => {
+      let record: CanonicalRecord | null = null;
+      let idBased = false;
+      if (Object.keys(identifier).length > 0) {
+        record = await adapter.getById(identifier, prefs);
+        if (record) idBased = true;
+      }
+      if (!record && title) {
+        const results = await adapter.search({ title, authors }, prefs);
+        if (results.length > 0) record = results[0];
+      }
+      return { record, idBased };
+    };
+
     const requestPromise = (async () => {
       try {
-        let record: CanonicalRecord | null = null;
-        if (Object.keys(identifier).length > 0) {
-          record = await adapter.getById(identifier, prefs);
+        return await attemptFetch();
+      } catch (firstError) {
+        const isTransient =
+          firstError instanceof Error &&
+          (firstError.name === "AbortError" ||
+            firstError.message.includes("fetch") ||
+            firstError.message.includes("network") ||
+            firstError.message.includes("ECONNRESET"));
+        if (!isTransient) throw firstError;
+        try {
+          return await attemptFetch();
+        } catch {
+          throw firstError;
         }
-        if (!record && title) {
-          const results = await adapter.search({ title, authors }, prefs);
-          if (results.length > 0) record = results[0];
-        }
-        return record;
       } finally {
         this.inFlightRequests.delete(key);
       }
@@ -196,13 +231,20 @@ export class Orchestrator {
 
   private extractIdentifier(item: any): Identifier {
     const id: Identifier = {};
-    const doi = item.getField("DOI");
-    if (doi && /^10\.\d{4,}\/\S+$/.test(doi)) id.doi = doi;
+    const rawDoi = item.getField("DOI");
+    if (rawDoi) {
+      const doi = String(rawDoi)
+        .trim()
+        .replace(/^https?:\/\/(dx\.)?doi\.org\//i, "");
+      if (/^10\.\d{4,}\/\S+$/.test(doi)) id.doi = doi;
+    }
 
     const isbn = item.getField("ISBN");
     if (isbn) {
-      const cleanIsbn = isbn.replace(/-/g, "");
-      if (/^\d{10}(\d{3})?$/.test(cleanIsbn)) id.isbn = isbn;
+      const cleanIsbn = String(isbn).replace(/[\s-]/g, "").toUpperCase();
+      if (/^\d{9}[\dX]$/.test(cleanIsbn) || /^\d{13}$/.test(cleanIsbn)) {
+        id.isbn = isbn;
+      }
     }
 
     const extra = item.getField("extra") || "";
@@ -217,7 +259,10 @@ export class Orchestrator {
       }
       if (!id.arxivId && trimmed.toLowerCase().startsWith("arxiv:")) {
         const val = trimmed.slice(6).trim();
-        if (/^\d{4}\.\d{4,5}(v\d+)?$/.test(val)) {
+        if (
+          /^\d{4}\.\d{4,5}(v\d+)?$/.test(val) ||
+          /^[a-z-]+(\.[a-z]{2})?\/\d{7}(v\d+)?$/i.test(val)
+        ) {
           id.arxivId = val;
         }
       }
@@ -307,22 +352,18 @@ export class Orchestrator {
       .map((c: any) => c.lastName)
       .filter(Boolean);
 
-    const promises = this.adapters.map(async (adapter) => {
-      if (!adapter.isConfigured(prefs)) return;
-
+    const queryAdapter = async (adapter: SourceAdapter, id: Identifier) => {
       const limiter = this.getLimiter(adapter);
       await limiter.acquire();
 
       try {
-        const record = await this.deduplicatedFetch(
+        const { record, idBased } = await this.deduplicatedFetch(
           adapter,
-          identifier,
+          id,
           title,
           authors,
           prefs,
         );
-        const hasStrongId =
-          Object.keys(identifier).length > 0 && record !== null;
 
         if (record) {
           allCandidates.push(record);
@@ -330,7 +371,7 @@ export class Orchestrator {
           diffsBySource.set(adapter.id, {
             tier: adapter.tier,
             diffs,
-            hasStrongIdentifierMatch: hasStrongId,
+            hasStrongIdentifierMatch: idBased,
           });
         }
       } catch (e) {
@@ -348,9 +389,42 @@ export class Orchestrator {
       } finally {
         limiter.release();
       }
-    });
+    };
 
-    await Promise.all(promises);
+    // Phase 1: Query all adapters with original identifiers
+    const configuredAdapters = this.adapters.filter((a) =>
+      a.isConfigured(prefs),
+    );
+    await Promise.all(
+      configuredAdapters.map((adapter) => queryAdapter(adapter, identifier)),
+    );
+
+    // Phase 2: Extract enriched identifiers from phase-1 results and
+    // re-query adapters that returned no result
+    const enriched: Identifier = { ...identifier };
+    for (const candidate of allCandidates) {
+      if (candidate.identifiers.doi && !enriched.doi)
+        enriched.doi = candidate.identifiers.doi;
+      if (candidate.identifiers.pmid && !enriched.pmid)
+        enriched.pmid = candidate.identifiers.pmid;
+      if (candidate.identifiers.arxivId && !enriched.arxivId)
+        enriched.arxivId = candidate.identifiers.arxivId;
+      if (candidate.identifiers.isbn && !enriched.isbn)
+        enriched.isbn = candidate.identifiers.isbn;
+    }
+
+    const hasNewIds =
+      Object.keys(enriched).length > Object.keys(identifier).length;
+    if (hasNewIds) {
+      const missedAdapters = configuredAdapters.filter(
+        (a) => !diffsBySource.has(a.id),
+      );
+      if (missedAdapters.length > 0) {
+        await Promise.all(
+          missedAdapters.map((adapter) => queryAdapter(adapter, enriched)),
+        );
+      }
+    }
 
     const minSources = prefs["behavior.min_sources"] || 2;
     let result = classify(diffsBySource, minSources);
@@ -372,6 +446,7 @@ export class Orchestrator {
 
     await this.persistResult(item, result);
 
+    allCandidates.sort((a, b) => b.confidence - a.confidence);
     const bestCandidate = allCandidates[0];
     if (bestCandidate) {
       this.library.add(identifier, title, bestCandidate, result);

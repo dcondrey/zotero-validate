@@ -1,0 +1,8 @@
+build
+node_modules
+.claude
+coverage
+*.md
+defaults
+package-lock.json
+update.json

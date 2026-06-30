@@ -1,4 +1,3 @@
-import { parseAuthorName, parseYear } from "./utils";
 import {
   SourceAdapter,
   Identifier,
@@ -6,7 +5,6 @@ import {
   PluginPrefs,
   CanonicalRecord,
 } from "../types";
-import { fetchJSON, safeString, safeArray, safeGet } from "../http";
 
 /**
  * Google Scholar adapter (stub).

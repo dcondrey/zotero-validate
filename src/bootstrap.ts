@@ -1,44 +1,46 @@
 import { registerPreferences, unregisterPreferences } from "./preferences";
 import { MenuManager } from "./menu";
+import { setHttpIdentity } from "./http";
 
 let menuManager: MenuManager | null = null;
-const PLUGIN_ID = "reference-validator@example.com";
 
 export function install() {
   Zotero.debug("ReferenceValidator: install");
 }
 
-export function startup({ id, version, resourceURI, rootURI }: any) {
+export async function startup({ id, version, resourceURI, rootURI }: any) {
   Zotero.debug("ReferenceValidator: startup");
-  registerPreferences();
+
+  await Zotero.uiReadyPromise;
+
+  let mailto: string | undefined;
+  try {
+    mailto =
+      Zotero.Prefs.get(
+        "extensions.zotero.reference-validator.sources.crossref.email",
+      ) || undefined;
+  } catch (e) {
+    mailto = undefined;
+  }
+  setHttpIdentity({ version: version || "0.1.0", mailto });
+
+  registerPreferences(rootURI);
 
   menuManager = new MenuManager();
   menuManager.init();
 
-  const windows = Zotero.getMainWindows();
-  for (const win of windows) {
-    if (win.ZoteroPane) {
-      menuManager.addToWindow(win);
-    }
+  const win = Zotero.getMainWindow();
+  if (win) {
+    menuManager.addToWindow(win);
   }
-
-  Zotero.WindowWatcher.registerCallback(PLUGIN_ID, (win: any, type: string) => {
-    if (type === "load" && win.ZoteroPane) {
-      menuManager?.addToWindow(win);
-    }
-  });
 }
 
 export function shutdown(reason: any) {
   Zotero.debug("ReferenceValidator: shutdown");
 
-  Zotero.WindowWatcher.deregisterCallback(PLUGIN_ID);
-
-  const windows = Zotero.getMainWindows();
-  for (const win of windows) {
-    if (win.ZoteroPane) {
-      menuManager?.removeFromWindow(win);
-    }
+  const win = Zotero.getMainWindow();
+  if (win) {
+    menuManager?.removeFromWindow(win);
   }
 
   menuManager?.shutdown();

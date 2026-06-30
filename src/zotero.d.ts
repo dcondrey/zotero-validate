@@ -6,19 +6,21 @@ declare const IOUtils: {
 
 declare const Zotero: {
   debug(message: string): void;
+  uiReadyPromise: Promise<void>;
   getMainWindow(): any;
   getMainWindows(): any[];
   getActiveZoteroPane(): any;
-  WindowWatcher: {
-    registerCallback(
-      id: string,
-      callback: (win: any, type: string) => void,
-    ): void;
-    deregisterCallback(id: string): void;
-  };
   Items: {
     get(id: number): any;
+    getAsync(id: number): Promise<any>;
   };
+  Collections: {
+    getByLibrary(libraryID: number): any[];
+  };
+  Libraries: {
+    userLibraryID: number;
+  };
+  Collection: new () => any;
   DataDirectory: {
     dir: string;
   };

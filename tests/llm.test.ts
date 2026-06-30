@@ -54,6 +54,53 @@ describe("LLMClient", () => {
     expect(result).toBeNull();
   });
 
+  it("should use a configured model override in the request", async () => {
+    let capturedUrl = "";
+    let capturedBody: any = {};
+    global.fetch = vi.fn((url: any, opts: any) => {
+      capturedUrl = url;
+      capturedBody = JSON.parse(opts.body);
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({ choices: [{ message: { content: jsonNo } }] }),
+      });
+    }) as any;
+
+    const llm = new LLMClient(() => ({
+      "behavior.use_llm": true,
+      "llm.openai.key": "sk-test",
+      "llm.openai.model": "gpt-4o",
+      "behavior.timeout_sec": 10,
+    }));
+    await llm.adjudicate(mockItem(), candidates);
+    expect(capturedBody.model).toBe("gpt-4o");
+    expect(capturedUrl).toContain("openai.com");
+  });
+
+  it("should put a configured Gemini model in the endpoint URL", async () => {
+    let capturedUrl = "";
+    global.fetch = vi.fn((url: any) => {
+      capturedUrl = url;
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            candidates: [{ content: { parts: [{ text: jsonNo }] } }],
+          }),
+      });
+    }) as any;
+
+    const llm = new LLMClient(() => ({
+      "behavior.use_llm": true,
+      "llm.gemini.key": "g-test",
+      "llm.gemini.model": "gemini-2.0-flash",
+      "behavior.timeout_sec": 10,
+    }));
+    await llm.adjudicate(mockItem(), candidates);
+    expect(capturedUrl).toContain("models/gemini-2.0-flash:generateContent");
+  });
+
   it("should parse OpenAI structured JSON match response", async () => {
     global.fetch = vi.fn(() =>
       Promise.resolve({
@@ -254,7 +301,9 @@ describe("LLMClient", () => {
     await llm.adjudicate(mockItem(), candidates);
 
     expect(capturedUrl).not.toContain("secret-key-123");
-    expect(capturedHeaders["x-goog-api-key"]).toBe("secret-key-123");
+    expect(new Headers(capturedHeaders).get("x-goog-api-key")).toBe(
+      "secret-key-123",
+    );
   });
 
   it("should request JSON format from OpenAI", async () => {

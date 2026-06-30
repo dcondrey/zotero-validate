@@ -121,6 +121,18 @@ describe("parseAuthorName (shared utils)", () => {
     expect(result.family).toBe("von Beethoven");
     expect(result.given).toBe("Ludwig");
   });
+
+  it('should handle "Family Initials" form (PubMed / Europe PMC)', () => {
+    const result = parseAuthorName("Smith J");
+    expect(result.family).toBe("Smith");
+    expect(result.given).toBe("J");
+  });
+
+  it("should keep a multi-word family in Family Initials form", () => {
+    const result = parseAuthorName("Van Der Berg JA");
+    expect(result.family).toBe("Van Der Berg");
+    expect(result.given).toBe("JA");
+  });
 });
 
 describe("OpenAlexAdapter", () => {

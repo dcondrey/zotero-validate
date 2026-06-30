@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   build:
@@ -13,30 +13,30 @@ jobs:
       id-token: write
       attestations: write
     steps:
-    - uses: actions/checkout@v7
-    - name: Use Node.js
-      uses: actions/setup-node@v6
-      with:
-        node-version: '20.x'
-    - run: npm ci
-    - run: npx tsc --noEmit
-    - run: npm run build
-    - run: npm test
-    - run: npm run package
-    - name: Generate update manifest
-      run: node scripts/update-manifest.js
-    - name: Commit update.json
-      run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        git add update.json
-        git commit -m "chore: update auto-update manifest for ${{ github.ref_name }}" || true
-        git push origin HEAD:main
-    - name: Generate Generic Attestations
-      uses: actions/attest@v4.1.1
-      with:
-        subject-path: 'zotero-reference-validator.xpi'
-    - name: Release
-      uses: softprops/action-gh-release@v3
-      with:
-        files: zotero-reference-validator.xpi
+      - uses: actions/checkout@v7
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20.x"
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run build
+      - run: npm test
+      - run: npm run package
+      - name: Generate update manifest
+        run: node scripts/update-manifest.js
+      - name: Commit update.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add update.json
+          git commit -m "chore: update auto-update manifest for ${{ github.ref_name }}" || true
+          git push origin HEAD:main
+      - name: Generate Generic Attestations
+        uses: actions/attest@v4.1.1
+        with:
+          subject-path: "zotero-reference-validator.xpi"
+      - name: Release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: zotero-reference-validator.xpi

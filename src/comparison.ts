@@ -79,7 +79,7 @@ const DASHES = new Set([
 
 function normalizeTitle(title: string): string {
   if (!title) return "";
-  let s = stripLatex(title);
+  const s = stripLatex(title);
   let out = "";
   for (const ch of s) {
     if (SMART_QUOTES[ch]) out += SMART_QUOTES[ch];
@@ -87,10 +87,9 @@ function normalizeTitle(title: string): string {
     else out += ch;
   }
   return out
-    .replace(/\s+/g, " ")
-    .trim()
     .toLowerCase()
-    .replace(/[.,:;!?]$/, "");
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
 }
 
 function levenshteinRatio(s1: string, s2: string): number {
@@ -183,18 +182,11 @@ export function compareAuthors(
     unmatchedSource.splice(idx, 1);
   }
 
-  if (unmatchedSource.length >= 3) {
-    return {
-      field: "authors",
-      status: "match",
-      diagnostic: "Matched (with et al. truncation)",
-    };
-  }
   if (unmatchedSource.length > 0) {
     return {
       field: "authors",
-      status: "mismatch",
-      diagnostic: `Source has ${unmatchedSource.length} more author(s) than Zotero, which is insufficient for et al. truncation`,
+      status: "match",
+      diagnostic: `Matched (source has ${unmatchedSource.length} additional author${unmatchedSource.length > 1 ? "s" : ""}, likely et al. truncation)`,
     };
   }
   return { field: "authors", status: "match" };
@@ -302,13 +294,11 @@ export function compareRecords(
   const zDate = item.getField("date");
   let zYear: number | undefined;
   if (zDate) {
-    const parsed = Date.parse(zDate);
-    if (!isNaN(parsed)) {
-      zYear = new Date(parsed).getFullYear();
-    } else {
-      const digits = zDate.slice(0, 4);
-      const num = parseInt(digits, 10);
-      if (num >= 1000 && num <= 9999) zYear = num;
+    // Try extracting a 4-digit year directly first to avoid timezone issues
+    const yearStr = String(zDate).slice(0, 4);
+    const num = parseInt(yearStr, 10);
+    if (num >= 1000 && num <= 9999) {
+      zYear = num;
     }
   }
 
@@ -341,6 +331,25 @@ export function compareRecords(
 
   if (record.venue) {
     if (itemType === "journalArticle") {
+      const zJournal =
+        item.getField("publicationTitle") ||
+        item.getField("journalAbbreviation");
+      if (record.venue.name && zJournal) {
+        if (!compareTitles(zJournal, record.venue.name)) {
+          diffs.push({
+            field: "journal",
+            status: "mismatch",
+            zoteroValue: zJournal,
+            sourceValue: record.venue.name,
+          });
+        }
+      } else if (!zJournal && record.venue.name) {
+        diffs.push({
+          field: "journal",
+          status: "missing-zotero",
+          sourceValue: record.venue.name,
+        });
+      }
       const zVolume = item.getField("volume");
       if (record.venue.volume && zVolume && zVolume !== record.venue.volume) {
         diffs.push({

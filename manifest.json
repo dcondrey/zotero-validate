@@ -1,16 +1,16 @@
 {
-  "id": "reference-validator@example.com",
-  "version": "0.1.0",
-  "applications": {
-    "zotero": {
-      "id": "zotero@chnm.gmu.edu",
-      "strict_min_version": "10.0",
-      "strict_max_version": "10.0.*"
-    }
-  },
+  "manifest_version": 2,
   "name": "Reference Validator",
+  "version": "0.1.0",
   "description": "Validates reference metadata against authoritative scholarly sources.",
   "author": "David Condrey",
-  "homepageURL": "https://github.com/dcondrey/zotero-validate",
-  "updateURL": "https://raw.githubusercontent.com/dcondrey/zotero-validate/main/update.json"
+  "homepage_url": "https://github.com/dcondrey/zotero-validate",
+  "applications": {
+    "zotero": {
+      "id": "reference-validator@example.com",
+      "update_url": "https://raw.githubusercontent.com/dcondrey/zotero-validate/main/update.json",
+      "strict_min_version": "6.999",
+      "strict_max_version": "11.0"
+    }
+  }
 }

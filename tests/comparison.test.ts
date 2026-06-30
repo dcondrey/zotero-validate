@@ -32,9 +32,9 @@ describe("comparison engine", () => {
     });
 
     it("should enforce the Levenshtein threshold at the boundary", () => {
-      expect(compareTitles("abcdefghijklmnopqrst", "abcdefghijklmnopqrsx")).toBe(
-        true,
-      );
+      expect(
+        compareTitles("abcdefghijklmnopqrst", "abcdefghijklmnopqrsx"),
+      ).toBe(true);
       expect(compareTitles("abcdefghijklmnopqrs", "abcdefghijklmnopqrx")).toBe(
         false,
       );
@@ -46,6 +46,15 @@ describe("comparison engine", () => {
           "A Study\u2014With \u201cQuotes\u201d",
           'A Study-With "Quotes"',
         ),
+      ).toBe(true);
+    });
+
+    it("should treat hyphen and space separators as equivalent", () => {
+      expect(
+        compareTitles("GPT-4 Technical Report", "GPT 4 Technical Report"),
+      ).toBe(true);
+      expect(
+        compareTitles("Cooperation: A Study", "Cooperation - A Study"),
       ).toBe(true);
     });
 
@@ -91,7 +100,7 @@ describe("comparison engine", () => {
       expect(compareAuthors(zAuthors, sAuthors as any).status).toBe("match");
     });
 
-    it("should handle et al. truncation if 3+ authors missing", () => {
+    it("should handle et al. truncation when source has more authors", () => {
       const zAuthors = [{ firstName: "A", lastName: "B" }];
       const sAuthors = [
         { given: "A", family: "B", raw: "" },
@@ -102,13 +111,13 @@ describe("comparison engine", () => {
       expect(compareAuthors(zAuthors, sAuthors as any).status).toBe("match");
     });
 
-    it("should fail et al. truncation if <3 authors missing", () => {
+    it("should match when source has 1-2 extra authors (et al. truncation)", () => {
       const zAuthors = [{ firstName: "A", lastName: "B" }];
       const sAuthors = [
         { given: "A", family: "B", raw: "" },
         { given: "C", family: "D", raw: "" },
       ];
-      expect(compareAuthors(zAuthors, sAuthors as any).status).toBe("mismatch");
+      expect(compareAuthors(zAuthors, sAuthors as any).status).toBe("match");
     });
   });
 

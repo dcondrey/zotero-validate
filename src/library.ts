@@ -16,6 +16,27 @@ export interface LibraryEntry {
   }>;
 }
 
+const SCHEMA_VERSION = 2;
+const VALID_STATUSES = ["VERIFIED", "VERIFIED_WITH_CORRECTIONS", "FLAGGED"];
+
+function isValidEntry(entry: any): entry is LibraryEntry {
+  if (!entry || typeof entry !== "object") return false;
+  if (typeof entry.identifierKey !== "string" || !entry.identifierKey) {
+    return false;
+  }
+  if (typeof entry.title !== "string") return false;
+  if (typeof entry.validatedAt !== "number") return false;
+  if (!entry.identifiers || typeof entry.identifiers !== "object") return false;
+  if (!entry.canonicalRecord || typeof entry.canonicalRecord !== "object") {
+    return false;
+  }
+  const vr = entry.validationResult;
+  if (!vr || typeof vr !== "object") return false;
+  if (!VALID_STATUSES.includes(vr.status)) return false;
+  if (!Array.isArray(vr.corrections)) return false;
+  return true;
+}
+
 export class GlobalReferenceLibrary {
   private entries = new Map<string, LibraryEntry>();
   private dirty = false;
@@ -47,12 +68,16 @@ export class GlobalReferenceLibrary {
         raw = JSON.parse(decompressed);
       }
 
-      if (Array.isArray(raw)) {
-        for (const entry of raw) {
-          if (entry.identifierKey) {
-            this.entries.set(entry.identifierKey, entry);
-          }
-        }
+      const rawEntries = Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.entries)
+          ? raw.entries
+          : [];
+      for (const entry of rawEntries) {
+        if (!isValidEntry(entry)) continue;
+        if (typeof entry.usageCount !== "number") entry.usageCount = 0;
+        if (!Array.isArray(entry.usages)) entry.usages = [];
+        this.entries.set(entry.identifierKey, entry);
       }
     } catch (e) {
       Zotero.debug(`ReferenceValidator: Failed to load library - ${e}`);
@@ -62,7 +87,10 @@ export class GlobalReferenceLibrary {
   async save(): Promise<void> {
     if (!this.dirty) return;
     try {
-      const data = JSON.stringify(Array.from(this.entries.values()));
+      const data = JSON.stringify({
+        schemaVersion: SCHEMA_VERSION,
+        entries: Array.from(this.entries.values()),
+      });
       const bytes =
         this.entries.size > 500
           ? await this.compress(data)

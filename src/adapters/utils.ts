@@ -35,6 +35,16 @@ export function parseAuthorName(raw: string): {
   const parts = name.split(/\s+/);
   if (parts.length <= 1) return { family: name, given: "", raw: name };
 
+  // "Family Initials" form (PubMed / Europe PMC), e.g. "Smith J", "Van Der Berg JA".
+  const last = parts[parts.length - 1];
+  if (/^[A-Z]{1,3}$/.test(last) || /^([A-Z]\.){1,3}$/.test(last)) {
+    return {
+      family: parts.slice(0, -1).join(" "),
+      given: last,
+      raw: name,
+    };
+  }
+
   let splitAt = parts.length - 1;
   while (splitAt > 1 && NAME_PREFIXES.has(parts[splitAt - 1].toLowerCase())) {
     splitAt--;

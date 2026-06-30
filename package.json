@@ -1,19 +1,27 @@
 {
   "name": "zotero-reference-validator",
   "version": "0.1.0",
-  "description": "Zotero 10 plugin to validate references against scholarly sources.",
+  "description": "Zotero 7 plugin to validate references against scholarly sources.",
   "main": "build/bootstrap.js",
   "scripts": {
     "build": "node build.js",
-    "package": "npm run build && cd build && zip -r ../zotero-reference-validator.xpi *",
+    "package": "npm run build && rm -f zotero-reference-validator.xpi && cd build && zip -r ../zotero-reference-validator.xpi .",
+    "lint": "eslint .",
+    "format": "prettier --check .",
     "test": "vitest run"
   },
-  "author": "",
+  "author": "David Condrey",
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^20.19.43",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
     "esbuild": "^0.28.1",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.3.0",
     "typescript": "^5.4.5",
+    "typescript-eslint": "^8.0.0",
     "vitest": "^1.5.0"
   }
 }

@@ -1,4 +1,4 @@
-import { parseAuthorName, parseYear } from "./utils";
+import { parseYear } from "./utils";
 import {
   SourceAdapter,
   Identifier,
@@ -6,7 +6,7 @@ import {
   PluginPrefs,
   CanonicalRecord,
 } from "../types";
-import { fetchJSON, safeString, safeArray, safeGet } from "../http";
+import { fetchJSON, safeString, safeArray } from "../http";
 
 export class UnpaywallAdapter implements SourceAdapter {
   id = "unpaywall";
