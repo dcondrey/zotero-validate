@@ -1,0 +1,195 @@
+{
+  "group": [
+    {
+      "last-modified-date": {
+        "value": 1653442066180
+      },
+      "external-ids": {
+        "external-id": [
+          {
+            "external-id-type": "eid",
+            "external-id-value": "2-s2.0-36248970413",
+            "external-id-normalized": {
+              "value": "2-s2.0-36248970413",
+              "transient": true
+            },
+            "external-id-normalized-error": null,
+            "external-id-url": null,
+            "external-id-relationship": "self"
+          },
+          {
+            "external-id-type": "doi",
+            "external-id-value": "10.1371/journal.pone.0000308",
+            "external-id-normalized": {
+              "value": "10.1371/journal.pone.0000308",
+              "transient": true
+            },
+            "external-id-normalized-error": null,
+            "external-id-url": null,
+            "external-id-relationship": "self"
+          }
+        ]
+      },
+      "work-summary": [
+        {
+          "put-code": 20773258,
+          "created-date": {
+            "value": 1449624236132
+          },
+          "last-modified-date": {
+            "value": 1653418773659
+          },
+          "source": {
+            "source-orcid": null,
+            "source-client-id": {
+              "uri": "https://orcid.org/client/0000-0002-5982-8983",
+              "path": "0000-0002-5982-8983",
+              "host": "orcid.org"
+            },
+            "source-name": {
+              "value": "Scopus - Elsevier"
+            },
+            "assertion-origin-orcid": {
+              "uri": "https://orcid.org/0000-0003-1613-5981",
+              "path": "0000-0003-1613-5981",
+              "host": "orcid.org"
+            },
+            "assertion-origin-client-id": null,
+            "assertion-origin-name": {
+              "value": "Heather Piwowar"
+            }
+          },
+          "title": {
+            "title": {
+              "value": "Sharing detailed research data is associated with increased citation rate"
+            },
+            "subtitle": null,
+            "translated-title": null
+          },
+          "external-ids": {
+            "external-id": [
+              {
+                "external-id-type": "doi",
+                "external-id-value": "10.1371/journal.pone.0000308",
+                "external-id-normalized": {
+                  "value": "10.1371/journal.pone.0000308",
+                  "transient": true
+                },
+                "external-id-normalized-error": null,
+                "external-id-url": null,
+                "external-id-relationship": "self"
+              },
+              {
+                "external-id-type": "eid",
+                "external-id-value": "2-s2.0-36248970413",
+                "external-id-normalized": {
+                  "value": "2-s2.0-36248970413",
+                  "transient": true
+                },
+                "external-id-normalized-error": null,
+                "external-id-url": null,
+                "external-id-relationship": "self"
+              }
+            ]
+          },
+          "url": {
+            "value": "http://www.scopus.com/inward/record.url?eid=2-s2.0-36248970413&partnerID=MN8TOARS"
+          },
+          "type": "journal-article",
+          "publication-date": {
+            "year": {
+              "value": "2007"
+            },
+            "month": null,
+            "day": null
+          },
+          "journal-title": {
+            "value": "PLoS ONE"
+          },
+          "visibility": "public",
+          "path": "/0000-0003-1613-5981/work/20773258",
+          "display-index": "0"
+        },
+        {
+          "put-code": 24931716,
+          "created-date": {
+            "value": 1466696993223
+          },
+          "last-modified-date": {
+            "value": 1653442066180
+          },
+          "source": {
+            "source-orcid": null,
+            "source-client-id": {
+              "uri": "https://orcid.org/client/0000-0002-5982-8983",
+              "path": "0000-0002-5982-8983",
+              "host": "orcid.org"
+            },
+            "source-name": {
+              "value": "Scopus - Elsevier"
+            },
+            "assertion-origin-orcid": {
+              "uri": "https://orcid.org/0000-0003-1613-5981",
+              "path": "0000-0003-1613-5981",
+              "host": "orcid.org"
+            },
+            "assertion-origin-client-id": null,
+            "assertion-origin-name": {
+              "value": "Heather Piwowar"
+            }
+          },
+          "title": {
+            "title": {
+              "value": "Sharing detailed research data is associated with increased citation rate"
+            },
+            "subtitle": null,
+            "translated-title": null
+          },
+          "external-ids": {
+            "external-id": [
+              {
+                "external-id-type": "doi",
+                "external-id-value": "10.1371/journal.pone.0000308",
+                "external-id-normalized": {
+                  "value": "10.1371/journal.pone.0000308",
+                  "transient": true
+                },
+                "external-id-normalized-error": null,
+                "external-id-url": null,
+                "external-id-relationship": "self"
+              },
+              {
+                "external-id-type": "eid",
+                "external-id-value": "2-s2.0-36248970413",
+                "external-id-normalized": {
+                  "value": "2-s2.0-36248970413",
+                  "transient": true
+                },
+                "external-id-normalized-error": null,
+                "external-id-url": null,
+                "external-id-relationship": "self"
+              }
+            ]
+          },
+          "url": {
+            "value": "http://www.scopus.com/inward/record.url?eid=2-s2.0-36248970413&partnerID=MN8TOARS"
+          },
+          "type": "journal-article",
+          "publication-date": {
+            "year": {
+              "value": "2007"
+            },
+            "month": null,
+            "day": null
+          },
+          "journal-title": {
+            "value": "PLoS ONE"
+          },
+          "visibility": "public",
+          "path": "/0000-0003-1613-5981/work/24931716",
+          "display-index": "0"
+        }
+      ]
+    }
+  ]
+}

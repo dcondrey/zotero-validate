@@ -18,7 +18,11 @@ export class IAScholarAdapter implements SourceAdapter {
   readonly rateLimit = { perSecond: 1, concurrent: 1 };
 
   isConfigured(prefs: PluginPrefs): boolean {
-    return prefs["sources.iascholar.enabled"] !== false;
+    // scholar.archive.org has no public JSON search API (the documented
+    // `format=json` parameter is ignored and an HTML page is returned), so this
+    // adapter cannot return results today. It is disabled unless explicitly
+    // enabled, to avoid a doomed request on every validation.
+    return prefs["sources.iascholar.enabled"] === true;
   }
 
   async getById(

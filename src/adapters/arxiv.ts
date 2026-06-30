@@ -6,6 +6,7 @@ import {
   PluginPrefs,
   CanonicalRecord,
 } from "../types";
+import { fetchText } from "../http";
 
 export class ArxivAdapter implements SourceAdapter {
   readonly id = "arxiv";
@@ -27,8 +28,9 @@ export class ArxivAdapter implements SourceAdapter {
     const arxivId = identifier.arxivId;
     if (!arxivId) return null;
 
+    const timeout = prefs?.["behavior.timeout_sec"] || 10;
     const url = `https://export.arxiv.org/api/query?id_list=${encodeURIComponent(arxivId)}`;
-    return this.executeArxivQuery(url);
+    return this.executeArxivQuery(url, timeout);
   }
 
   async search(
@@ -42,14 +44,13 @@ export class ArxivAdapter implements SourceAdapter {
       searchTerms += ` AND au:"${query.authors[0]}"`;
     }
 
+    const timeout = prefs?.["behavior.timeout_sec"] || 10;
     const url = `https://export.arxiv.org/api/query?search_query=${encodeURIComponent(searchTerms)}&max_results=3`;
 
     try {
-      const response = await fetch(url);
-      if (!response.ok) return [];
-      const xmlText = await response.text();
+      const xmlText = await fetchText(url, {}, timeout);
+      if (!xmlText) return [];
 
-      // Use native Zotero Gecko runtime DOMParser
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlText, "text/xml");
       const entries = xmlDoc.getElementsByTagName("entry");
@@ -69,11 +70,11 @@ export class ArxivAdapter implements SourceAdapter {
 
   private async executeArxivQuery(
     url: string,
+    timeout: number,
   ): Promise<CanonicalRecord | null> {
     try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const xmlText = await response.text();
+      const xmlText = await fetchText(url, {}, timeout);
+      if (!xmlText) return null;
 
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlText, "text/xml");

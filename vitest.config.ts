@@ -7,5 +7,6 @@ export default defineConfig({
     // scanned and run as duplicate (and stale) copies of the tests.
     include: ["tests/**/*.test.ts"],
     exclude: ["node_modules/**", "build/**", ".claude/**"],
+    setupFiles: ["tests/setup.ts"],
   },
 });

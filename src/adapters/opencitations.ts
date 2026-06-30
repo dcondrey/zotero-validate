@@ -28,7 +28,7 @@ export class OpenCitationsAdapter implements SourceAdapter {
     try {
       const timeout = prefs["behavior.timeout_sec"] || 10;
       const data = await fetchJSON(
-        `https://opencitations.net/index/coci/api/v1/metadata/${encodeURIComponent(identifier.doi)}`,
+        `https://opencitations.net/meta/api/v1/metadata/doi:${identifier.doi}`,
         {},
         timeout,
       );
@@ -49,30 +49,52 @@ export class OpenCitationsAdapter implements SourceAdapter {
     return [];
   }
 
+  // OpenCitations Meta annotates values with bracketed identifiers,
+  // e.g. "Plos One [issn:1932-6203 omid:...]" or "Piwowar, Heather [orcid:...]".
+  private stripAnnotations(value: string): string {
+    return value.replace(/\s*\[[^\]]*\]/g, "").trim();
+  }
+
+  // The "id" field is a space-separated list, e.g.
+  // "doi:10.1/x openalex:W1 pmid:123 omid:br/...".
+  private parseIds(idField: string): { doi?: string; pmid?: string } {
+    const out: { doi?: string; pmid?: string } = {};
+    for (const token of safeString(idField).split(/\s+/)) {
+      if (token.startsWith("doi:")) out.doi = token.slice(4);
+      else if (token.startsWith("pmid:")) out.pmid = token.slice(5);
+    }
+    return out;
+  }
+
   private normalize(item: any): CanonicalRecord {
     if (!item || typeof item !== "object") {
       return this.emptyRecord(item);
     }
 
+    const ids = this.parseIds(item.id);
+
     const authorStr = safeString(item.author);
     const authors = authorStr
       ? authorStr
           .split(";")
-          .map((name: string) => parseAuthorName(name.trim()))
+          .map((name: string) => parseAuthorName(this.stripAnnotations(name)))
           .filter((a: { family: string }) => a.family !== "")
       : [];
 
-    const doi = safeString(item.oc_doi || item.doi);
-    const sourceTitle = safeString(item.source_title);
+    const venueName = this.stripAnnotations(safeString(item.venue));
+
+    const identifiers: Identifier = {};
+    if (ids.doi) identifiers.doi = ids.doi;
+    if (ids.pmid) identifiers.pmid = ids.pmid;
 
     return {
-      identifiers: { doi: doi || undefined },
+      identifiers,
       title: safeString(item.title),
       authors,
-      year: parseYear(item.year),
-      venue: sourceTitle
+      year: parseYear(safeString(item.pub_date).slice(0, 4)),
+      venue: venueName
         ? {
-            name: sourceTitle,
+            name: venueName,
             type: "journal",
             volume: safeString(item.volume) || undefined,
             issue: safeString(item.issue) || undefined,
@@ -80,7 +102,9 @@ export class OpenCitationsAdapter implements SourceAdapter {
           }
         : undefined,
       source: this.id,
-      sourceUrl: doi ? `https://doi.org/${doi}` : "https://opencitations.net",
+      sourceUrl: ids.doi
+        ? `https://doi.org/${ids.doi}`
+        : "https://opencitations.net",
       confidence: 0.7,
       rawResponse: item,
     };
