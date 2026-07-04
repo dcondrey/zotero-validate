@@ -6,6 +6,7 @@ import {
   PluginPrefs,
   CanonicalRecord,
 } from "../types";
+import { fetchJSON } from "../http";
 
 export class OpenLibraryAdapter implements SourceAdapter {
   readonly id = "openlibrary";
@@ -26,14 +27,13 @@ export class OpenLibraryAdapter implements SourceAdapter {
     if (!isbn) return null;
 
     const bibKey = `ISBN:${isbn}`;
+    const timeout = prefs?.["behavior.timeout_sec"] || 10;
     const url = `https://openlibrary.org/api/books?bibkeys=${bibKey}&format=json&jscmd=data`;
 
     try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
+      const data = await fetchJSON(url, {}, timeout);
 
-      const bookData = data[bibKey];
+      const bookData = data?.[bibKey];
       return bookData ? this.transformBook(isbn, bookData) : null;
     } catch (e) {
       throw new Error(
@@ -53,13 +53,11 @@ export class OpenLibraryAdapter implements SourceAdapter {
       qString += ` AND author:${query.authors[0]}`;
     }
 
+    const timeout = prefs?.["behavior.timeout_sec"] || 10;
     const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(qString)}&limit=3`;
     try {
-      const response = await fetch(url);
-      if (!response.ok) return [];
-      const data = await response.json();
-
-      const docs = data.docs || [];
+      const data = await fetchJSON(url, {}, timeout);
+      const docs = data?.docs || [];
       return docs.map((doc: any) => this.transformSearchDoc(doc));
     } catch (e) {
       throw new Error(

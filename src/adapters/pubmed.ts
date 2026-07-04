@@ -5,6 +5,7 @@ import {
   PluginPrefs,
   CanonicalRecord,
 } from "../types";
+import { fetchJSON } from "../http";
 
 export class PubMedAdapter implements SourceAdapter {
   readonly id = "pubmed";
@@ -22,14 +23,14 @@ export class PubMedAdapter implements SourceAdapter {
     prefs?: PluginPrefs,
   ): Promise<CanonicalRecord | null> {
     let pmid = identifier.pmid;
+    const timeout = prefs?.["behavior.timeout_sec"] || 10;
 
     // Resolve DOI via Esearch first if direct PMID is absent
     if (!pmid && identifier.doi) {
       const searchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${encodeURIComponent(identifier.doi)}[aid]&retmode=json`;
       try {
-        const sRes = await fetch(searchUrl);
-        const sData = await sRes.json();
-        pmid = sData.esearchresult?.idlist?.[0];
+        const sData = await fetchJSON(searchUrl, {}, timeout);
+        pmid = sData?.esearchresult?.idlist?.[0];
       } catch {
         return null;
       }
@@ -39,11 +40,8 @@ export class PubMedAdapter implements SourceAdapter {
 
     const summaryUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=${pmid}&retmode=json`;
     try {
-      const response = await fetch(summaryUrl);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-
-      const record = data.result?.[pmid];
+      const data = await fetchJSON(summaryUrl, {}, timeout);
+      const record = data?.result?.[pmid];
       return record ? this.transformRecord(pmid, record) : null;
     } catch (e) {
       throw new Error(
@@ -63,21 +61,19 @@ export class PubMedAdapter implements SourceAdapter {
       term += ` AND ${query.authors[0]}[Author]`;
     }
 
+    const timeout = prefs?.["behavior.timeout_sec"] || 10;
     const searchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${encodeURIComponent(term)}&retmax=3&retmode=json`;
     try {
-      const sRes = await fetch(searchUrl);
-      if (!sRes.ok) return [];
-      const sData = await sRes.json();
-      const ids: string[] = sData.esearchresult?.idlist || [];
+      const sData = await fetchJSON(searchUrl, {}, timeout);
+      const ids: string[] = sData?.esearchresult?.idlist || [];
       if (ids.length === 0) return [];
 
       const summaryUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=${ids.join(",")}&retmode=json`;
-      const summaryRes = await fetch(summaryUrl);
-      const summaryData = await summaryRes.json();
+      const summaryData = await fetchJSON(summaryUrl, {}, timeout);
 
       return ids
         .map((id) =>
-          summaryData.result?.[id]
+          summaryData?.result?.[id]
             ? this.transformRecord(id, summaryData.result[id], 0.8)
             : null,
         )

@@ -6,6 +6,7 @@ import {
   PluginPrefs,
   CanonicalRecord,
 } from "../types";
+import { fetchJSON } from "../http";
 
 export class OpenReviewAdapter implements SourceAdapter {
   readonly id = "openreview";
@@ -25,13 +26,11 @@ export class OpenReviewAdapter implements SourceAdapter {
     const orId = identifier.openReviewId;
     if (!orId) return null;
 
+    const timeout = prefs?.["behavior.timeout_sec"] || 10;
     const url = `https://api2.openreview.net/notes?id=${encodeURIComponent(orId)}`;
     try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-      const data = await response.json();
-      const note = data.notes?.[0];
+      const data = await fetchJSON(url, {}, timeout);
+      const note = data?.notes?.[0];
       return note ? this.transformNote(note) : null;
     } catch (e) {
       throw new Error(
@@ -46,13 +45,11 @@ export class OpenReviewAdapter implements SourceAdapter {
   ): Promise<CanonicalRecord[]> {
     if (!query.title) return [];
 
+    const timeout = prefs?.["behavior.timeout_sec"] || 10;
     const url = `https://api2.openreview.net/notes/search?query=${encodeURIComponent(query.title)}&limit=3`;
     try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-      const data = await response.json();
-      const notes = data.notes || [];
+      const data = await fetchJSON(url, {}, timeout);
+      const notes = data?.notes || [];
       return notes.map((note: any) => this.transformNote(note));
     } catch (e) {
       throw new Error(

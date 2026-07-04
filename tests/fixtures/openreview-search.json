@@ -1,0 +1,48 @@
+{
+  "notes": [
+    {
+      "id": "k7l7p1yVZj",
+      "mdate": 1729222348525,
+      "tcdate": 1729220267174,
+      "content": {
+        "title": {
+          "value": "GAN Vocoder: Multi-Resolution Discriminator Is All You Need"
+        },
+        "authors": {
+          "value": [
+            "Jaeseong You",
+            "Dalhyun Kim",
+            "Gyuhyeon Nam",
+            "Geumbyeol Hwang",
+            "Gyeongsu Chae"
+          ]
+        },
+        "venue": {
+          "value": "CoRR 2021"
+        }
+      }
+    },
+    {
+      "id": "s7kNuWIB09",
+      "mdate": 1729220275979,
+      "tcdate": 1729220265766,
+      "content": {
+        "title": {
+          "value": "GAN Vocoder: Multi-Resolution Discriminator Is All You Need"
+        },
+        "authors": {
+          "value": [
+            "Jaeseong You",
+            "Dalhyun Kim",
+            "Gyuhyeon Nam",
+            "Geumbyeol Hwang",
+            "Gyeongsu Chae"
+          ]
+        },
+        "venue": {
+          "value": "Interspeech 2021"
+        }
+      }
+    }
+  ]
+}

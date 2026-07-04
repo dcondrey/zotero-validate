@@ -1,0 +1,38 @@
+{
+  "id": "https://openalex.org/W2046766973",
+  "doi": "https://doi.org/10.1371/journal.pone.0000308",
+  "title": "Sharing Detailed Research Data Is Associated with Increased Citation Rate",
+  "publication_year": 2007,
+  "ids": {
+    "pmid": "https://pubmed.ncbi.nlm.nih.gov/17375194"
+  },
+  "authorships": [
+    {
+      "author": {
+        "display_name": "Heather Piwowar"
+      }
+    },
+    {
+      "author": {
+        "display_name": "Roger Day"
+      }
+    },
+    {
+      "author": {
+        "display_name": "Douglas B. Fridsma"
+      }
+    }
+  ],
+  "primary_location": {
+    "source": {
+      "display_name": "PLoS ONE",
+      "type": "journal"
+    }
+  },
+  "biblio": {
+    "volume": "2",
+    "issue": "3",
+    "first_page": "e308",
+    "last_page": "e308"
+  }
+}

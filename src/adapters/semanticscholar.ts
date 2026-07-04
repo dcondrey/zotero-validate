@@ -6,6 +6,7 @@ import {
   PluginPrefs,
   CanonicalRecord,
 } from "../types";
+import { fetchJSON } from "../http";
 
 export class SemanticScholarAdapter implements SourceAdapter {
   readonly id = "semanticscholar";
@@ -47,11 +48,13 @@ export class SemanticScholarAdapter implements SourceAdapter {
     const url = `https://api.semanticscholar.org/graph/v1/paper/${encodeURIComponent(targetId)}?fields=${fields}`;
 
     try {
-      const response = await fetch(url, { headers: this.getHeaders(prefs) });
-      if (response.status === 404) return null;
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-      const data = await response.json();
+      const timeout = prefs?.["behavior.timeout_sec"] || 10;
+      const data = await fetchJSON(
+        url,
+        { headers: this.getHeaders(prefs) },
+        timeout,
+      );
+      if (!data) return null;
       return this.transformRecord(data, 1.0);
     } catch (e) {
       throw new Error(
@@ -75,11 +78,13 @@ export class SemanticScholarAdapter implements SourceAdapter {
     const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(queryString)}&fields=${fields}&limit=5`;
 
     try {
-      const response = await fetch(url, { headers: this.getHeaders(prefs) });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-      const data = await response.json();
-      if (!data.data || !Array.isArray(data.data)) return [];
+      const timeout = prefs?.["behavior.timeout_sec"] || 10;
+      const data = await fetchJSON(
+        url,
+        { headers: this.getHeaders(prefs) },
+        timeout,
+      );
+      if (!data || !Array.isArray(data.data)) return [];
 
       return data.data.map((item: any) => this.transformRecord(item, 0.8));
     } catch (e) {

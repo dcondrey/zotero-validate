@@ -6,6 +6,7 @@ import {
   PluginPrefs,
   CanonicalRecord,
 } from "../types";
+import { fetchJSON } from "../http";
 
 export class DblpAdapter implements SourceAdapter {
   readonly id = "dblp";
@@ -45,12 +46,11 @@ export class DblpAdapter implements SourceAdapter {
       term += ` author:${query.authors[0]}`;
     }
 
+    const timeout = prefs?.["behavior.timeout_sec"] || 10;
     const url = `https://dblp.org/search/publ/api?q=${encodeURIComponent(term)}&format=json&h=5`;
     try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-      const hits = data.result?.hits?.hit;
+      const data = await fetchJSON(url, {}, timeout);
+      const hits = data?.result?.hits?.hit;
       if (!hits) return [];
 
       return (Array.isArray(hits) ? hits : [hits]).map((h: any) =>
@@ -65,10 +65,8 @@ export class DblpAdapter implements SourceAdapter {
 
   private async fetchFromDblp(url: string): Promise<CanonicalRecord | null> {
     try {
-      const response = await fetch(url);
-      if (!response.ok) return null;
-      const data = await response.json();
-      const hit = data.result?.hits?.hit?.[0];
+      const data = await fetchJSON(url);
+      const hit = data?.result?.hits?.hit?.[0];
       return hit ? this.transformRecord(hit.info) : null;
     } catch {
       return null;

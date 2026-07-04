@@ -5,6 +5,7 @@ import {
   PluginPrefs,
   CanonicalRecord,
 } from "../types";
+import { fetchJSON, fetchText } from "../http";
 
 export class AclAnthologyAdapter implements SourceAdapter {
   readonly id = "aclanthology";
@@ -25,13 +26,11 @@ export class AclAnthologyAdapter implements SourceAdapter {
     if (!aclId) return null;
 
     // ACL documents are addressable via direct static BibTeX strings
+    const timeout = prefs?.["behavior.timeout_sec"] || 10;
     const url = `https://aclanthology.org/${encodeURIComponent(aclId)}.bib`;
     try {
-      const response = await fetch(url);
-      if (response.status === 404) return null;
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-      const bibText = await response.text();
+      const bibText = await fetchText(url, {}, timeout);
+      if (!bibText) return null;
       return this.parseBibtex(bibText, aclId);
     } catch (e) {
       throw new Error(
@@ -48,6 +47,7 @@ export class AclAnthologyAdapter implements SourceAdapter {
 
     // The ACL Anthology search engine uses a public indexing interface via Crossref metadata tags.
     // We target the ACL container directly to isolate results cleanly.
+    const timeout = prefs?.["behavior.timeout_sec"] || 10;
     const cleanTitle = encodeURIComponent(query.title);
     const filter = encodeURIComponent(
       "container-title:Association for Computational Linguistics",
@@ -55,16 +55,8 @@ export class AclAnthologyAdapter implements SourceAdapter {
     const url = `https://api.crossref.org/works?query.title=${cleanTitle}&filter=${filter}&rows=3`;
 
     try {
-      const response = await fetch(url, {
-        headers: {
-          "User-Agent":
-            "Zotero-ReferenceValidator/1.0 (mailto:extension@example.com)",
-        },
-      });
-      if (!response.ok) return [];
-      const data = await response.json();
-
-      const items = data.message?.items || [];
+      const data = await fetchJSON(url, {}, timeout);
+      const items = data?.message?.items || [];
       return items
         .map((item: any) => this.transformCrossrefToAcl(item))
         .filter((r: any): r is CanonicalRecord => r !== null);
