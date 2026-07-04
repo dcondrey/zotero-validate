@@ -2,6 +2,21 @@ import { GlobalReferenceLibrary } from "./library";
 
 const COLLECTION_NAME = "Validated References";
 
+// Given the item IDs that should be in the managed collection and the IDs
+// currently in it, return which to add and which to remove. Pure set logic,
+// extracted so the collection-mutation decision can be tested in isolation.
+export function computeCollectionDelta(
+  trackedItemIds: Iterable<number>,
+  existingItemIds: number[],
+): { toAdd: number[]; toRemove: number[] } {
+  const tracked = new Set(trackedItemIds);
+  const existing = new Set(existingItemIds);
+  return {
+    toAdd: [...tracked].filter((id) => !existing.has(id)),
+    toRemove: existingItemIds.filter((id) => !tracked.has(id)),
+  };
+}
+
 async function getOrCreateCollection(): Promise<any> {
   const collections = Zotero.Collections.getByLibrary(
     Zotero.Libraries.userLibraryID,
@@ -36,21 +51,22 @@ export async function syncLibraryCollection(
     }
   }
 
+  const { toAdd, toRemove } = computeCollectionDelta(
+    trackedItemIDs,
+    existingItemIDs,
+  );
+
   // Add items that should be in the collection
-  for (const itemId of trackedItemIDs) {
-    if (!existingItemIDs.includes(itemId)) {
-      const item = await Zotero.Items.getAsync(itemId);
-      if (item) {
-        await collection.addItem(item.id);
-      }
+  for (const itemId of toAdd) {
+    const item = await Zotero.Items.getAsync(itemId);
+    if (item) {
+      await collection.addItem(item.id);
     }
   }
 
   // Remove items no longer validated
-  for (const itemId of existingItemIDs) {
-    if (!trackedItemIDs.has(itemId)) {
-      await collection.removeItem(itemId);
-    }
+  for (const itemId of toRemove) {
+    await collection.removeItem(itemId);
   }
 }
 

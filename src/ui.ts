@@ -13,7 +13,7 @@ const STATUS_LABELS: Record<string, string> = {
   FLAGGED: "Flagged",
 };
 
-function fieldToZoteroField(field: string): string | null {
+export function fieldToZoteroField(field: string): string | null {
   const map: Record<string, string> = {
     title: "title",
     year: "date",
@@ -26,24 +26,42 @@ function fieldToZoteroField(field: string): string | null {
   return map[field] || null;
 }
 
-async function applyCorrection(
-  item: any,
-  correction: FieldDiff,
-): Promise<boolean> {
-  if (!correction.sourceValue) return false;
-  const zField = fieldToZoteroField(correction.field);
-  if (!zField) return false;
+// The string value to write for a correction, or null if it cannot be applied
+// (no source value, or a field with no Zotero equivalent such as authors).
+export function correctionValueFor(correction: FieldDiff): string | null {
+  if (correction.sourceValue === undefined || correction.sourceValue === null) {
+    return null;
+  }
+  if (!fieldToZoteroField(correction.field)) return null;
+  return String(correction.sourceValue);
+}
 
+// Apply every applicable correction to an item with a single saveTx, so a
+// multi-field fix is one atomic write rather than one transaction per field.
+// A field the item type rejects is skipped without aborting the others.
+// Returns the number of fields actually written (0 means nothing was saved).
+export async function applyCorrections(
+  item: any,
+  corrections: FieldDiff[],
+): Promise<number> {
+  let count = 0;
+  for (const correction of corrections) {
+    const zField = fieldToZoteroField(correction.field);
+    const value = correctionValueFor(correction);
+    if (!zField || value === null) continue;
+    try {
+      item.setField(zField, value);
+      count++;
+    } catch {
+      // Item type does not accept this field; skip it.
+    }
+  }
+  if (count === 0) return 0;
   try {
-    const val =
-      correction.field === "year"
-        ? String(correction.sourceValue)
-        : correction.sourceValue;
-    item.setField(zField, val);
     await item.saveTx();
-    return true;
+    return count;
   } catch {
-    return false;
+    return 0;
   }
 }
 
@@ -140,7 +158,11 @@ export function showResultsWindow(
       dot.className = "summary-dot";
       dot.style.background = color;
       const text = doc.createElement("span");
-      text.innerHTML = `<span class="summary-count">${count}</span> ${label}`;
+      const countEl = doc.createElement("span");
+      countEl.className = "summary-count";
+      countEl.textContent = String(count);
+      text.appendChild(countEl);
+      text.appendChild(doc.createTextNode(` ${label}`));
       stat.appendChild(dot);
       stat.appendChild(text);
       summaryBar.appendChild(stat);
@@ -254,8 +276,8 @@ export function showResultsWindow(
             btn.className = "apply-btn";
             btn.textContent = "Apply";
             btn.addEventListener("click", async () => {
-              const ok = await applyCorrection(item, correction);
-              if (ok) {
+              const applied = await applyCorrections(item, [correction]);
+              if (applied > 0) {
                 btn.textContent = "Applied";
                 btn.classList.add("applied");
                 btn.disabled = true;
@@ -311,12 +333,7 @@ export function showResultsWindow(
       applyAllBtn.textContent = "Applying...";
       let applied = 0;
       for (const { item, result } of correctableResults) {
-        for (const correction of result.corrections) {
-          if (correction.sourceValue && fieldToZoteroField(correction.field)) {
-            const ok = await applyCorrection(item, correction);
-            if (ok) applied++;
-          }
-        }
+        applied += await applyCorrections(item, result.corrections);
       }
       applyAllBtn.textContent = `Applied ${applied} correction${applied !== 1 ? "s" : ""}`;
       for (const btn of applyButtons) {
