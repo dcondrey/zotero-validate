@@ -23,14 +23,11 @@ export class DblpAdapter implements SourceAdapter {
     identifier: Identifier,
     prefs?: PluginPrefs,
   ): Promise<CanonicalRecord | null> {
+    // DBLP's search API only matches by dblp key here; free-text DOI queries
+    // return no hits, so DOI lookups fall through to title search instead.
     if (identifier.dblpKey) {
       return this.fetchFromDblp(
         `https://dblp.org/search/publ/api?q=key:${encodeURIComponent(identifier.dblpKey)}&format=json`,
-      );
-    }
-    if (identifier.doi) {
-      return this.fetchFromDblp(
-        `https://dblp.org/search/publ/api?q=${encodeURIComponent(identifier.doi)}&format=json`,
       );
     }
     return null;

@@ -163,7 +163,7 @@ describe("DBLP contract (real API response)", () => {
       Promise.resolve(jsonResponse(fixture("dblp.json"))),
     ) as any;
     const rec = await new DblpAdapter().getById({
-      doi: "10.1109/DAC18074.2021.9586227",
+      dblpKey: "conf/dac/ZhangYY21",
     });
     expect(rec).not.toBeNull();
     expect(rec!.title).toContain("Attentional Transfer");

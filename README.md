@@ -57,7 +57,7 @@ The plugin will check for updates automatically.
 
 | Source | Credentials | Lookup | Search |
 |--------|-------------|--------|--------|
-| [DBLP](https://dblp.org/) | None | DBLP key, DOI | Title + Author |
+| [DBLP](https://dblp.org/) | None | DBLP key | Title + Author |
 | [ACL Anthology](https://aclanthology.org/) | None | ACL ID | Title (via Crossref) |
 | [OpenReview](https://openreview.net/) | None | OpenReview ID | Title |
 | [Open Library](https://openlibrary.org/) | None | ISBN | Title + Author |
