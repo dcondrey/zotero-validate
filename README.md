@@ -24,7 +24,7 @@ The plugin will check for updates automatically.
 <details>
 <summary><strong>Features</strong> -- multi-source verification, LLM fallback, batch processing, auto-updates</summary>
 
-- **Multi-source verification** -- validates against up to 16 scholarly databases simultaneously
+- **Multi-source verification** -- validates against up to 14 scholarly databases simultaneously
 - **Global reference library** -- validated references are cached locally with compressed storage, usage tracking, and a dedicated viewer UI
 - **Tiered classification** -- items are marked VERIFIED, VERIFIED WITH CORRECTIONS, or FLAGGED based on cross-source consensus
 - **Smart comparison** -- order-agnostic author matching, two-row Levenshtein title similarity, ISBN-10/13 normalization, arXiv version handling
@@ -39,7 +39,7 @@ The plugin will check for updates automatically.
 </details>
 
 <details>
-<summary><strong>Supported Sources</strong> -- 16 scholarly databases across three tiers</summary>
+<summary><strong>Supported Sources</strong> -- 14 scholarly databases across three tiers</summary>
 
 ### Tier 1 (Authoritative)
 
@@ -69,8 +69,6 @@ The plugin will check for updates automatically.
 |--------|-------------|--------|--------|
 | [OpenCitations](https://opencitations.net/) | None | DOI | -- |
 | [Unpaywall](https://unpaywall.org/) | Email (reused) | DOI | -- |
-| [Internet Archive Scholar](https://scholar.archive.org/) | -- | -- | -- (disabled, no public JSON API) |
-| [Google Scholar](https://scholar.google.com/) | -- | -- | -- (stub, no public API) |
 
 **Tier 1** and **Tier 2** sources contribute to the verification threshold. The default minimum is 2 agreeing sources. Tier 3 sources provide supplementary metadata.
 
@@ -256,8 +254,6 @@ src/
     orcid.ts            ORCID (Tier 2)
     opencitations.ts    OpenCitations (Tier 3)
     unpaywall.ts        Unpaywall (Tier 3)
-    iascholar.ts        Internet Archive Scholar (Tier 3)
-    googlescholar.ts    Google Scholar (Tier 3, stub)
 tests/
   orchestrator.test.ts  Validation flow, caching, persistence
   llm.test.ts           Response parsing, structured output, prompt safety

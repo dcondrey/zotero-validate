@@ -22,8 +22,6 @@ const PREF_KEYS = [
   "sources.orcid.enabled",
   "sources.opencitations.enabled",
   "sources.unpaywall.enabled",
-  "sources.iascholar.enabled",
-  "sources.googlescholar.enabled",
   "behavior.min_sources",
   "behavior.use_llm",
   "behavior.freshness_days",

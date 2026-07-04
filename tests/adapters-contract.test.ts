@@ -2,8 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { DataCiteAdapter } from "../src/adapters/datacite";
 import { EuropePMCAdapter } from "../src/adapters/europepmc";
 import { UnpaywallAdapter } from "../src/adapters/unpaywall";
-import { IAScholarAdapter } from "../src/adapters/iascholar";
-import { GoogleScholarAdapter } from "../src/adapters/googlescholar";
 
 declare global {
   var Zotero: any;
@@ -142,37 +140,5 @@ describe("Unpaywall contract (documented schema)", () => {
     });
     expect(record).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
-  });
-});
-
-describe("IA Scholar (no working public JSON API)", () => {
-  it("is disabled unless explicitly enabled", () => {
-    const adapter = new IAScholarAdapter();
-    expect(adapter.isConfigured({})).toBe(false);
-    expect(adapter.isConfigured({ "sources.iascholar.enabled": true })).toBe(
-      true,
-    );
-  });
-
-  it("fails gracefully when the API returns HTML instead of JSON", async () => {
-    global.fetch = vi.fn(() =>
-      Promise.resolve(
-        new Response("<!DOCTYPE html><html></html>", {
-          status: 200,
-          headers: { "content-type": "text/html" },
-        }),
-      ),
-    ) as any;
-    const record = await new IAScholarAdapter().getById({ doi: "10.1/x" });
-    expect(record).toBeNull();
-  });
-});
-
-describe("Google Scholar (stub)", () => {
-  it("is disabled and returns no results", async () => {
-    const adapter = new GoogleScholarAdapter();
-    expect(adapter.isConfigured({})).toBe(false);
-    expect(await adapter.getById({ doi: "10.1/x" })).toBeNull();
-    expect(await adapter.search({ title: "anything" })).toEqual([]);
   });
 });

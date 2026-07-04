@@ -18,9 +18,7 @@ import { DataCiteAdapter } from "./adapters/datacite";
 import { EuropePMCAdapter } from "./adapters/europepmc";
 import { OpenCitationsAdapter } from "./adapters/opencitations";
 import { UnpaywallAdapter } from "./adapters/unpaywall";
-import { IAScholarAdapter } from "./adapters/iascholar";
 import { OrcidAdapter } from "./adapters/orcid";
-import { GoogleScholarAdapter } from "./adapters/googlescholar";
 import { compareRecords } from "./comparison";
 import { classify, ClassificationResult } from "./classifier";
 import { LLMClient } from "./llm";
@@ -43,8 +41,6 @@ export class Orchestrator {
     new OrcidAdapter(),
     new OpenCitationsAdapter(),
     new UnpaywallAdapter(),
-    new IAScholarAdapter(),
-    new GoogleScholarAdapter(),
   ];
   private llmClient: LLMClient;
   private limiters = new Map<string, TokenBucketRateLimiter>();

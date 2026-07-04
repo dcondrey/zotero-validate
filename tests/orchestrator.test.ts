@@ -20,8 +20,6 @@ const ALL_DISABLED: Record<string, any> = {
   "sources.orcid.enabled": false,
   "sources.opencitations.enabled": false,
   "sources.unpaywall.enabled": false,
-  "sources.iascholar.enabled": false,
-  "sources.googlescholar.enabled": false,
 };
 
 beforeEach(() => {
