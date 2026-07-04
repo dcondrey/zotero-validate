@@ -181,15 +181,6 @@ export function safeString(val: any, fallback = ""): string {
   return String(val);
 }
 
-export function safeNumber(val: any): number | undefined {
-  if (typeof val === "number" && !isNaN(val)) return val;
-  if (typeof val === "string") {
-    const n = parseInt(val, 10);
-    return isNaN(n) ? undefined : n;
-  }
-  return undefined;
-}
-
 export function safeArray(val: any): any[] {
   if (Array.isArray(val)) return val;
   if (val == null) return [];

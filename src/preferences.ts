@@ -1,5 +1,5 @@
-// ASSUMPTION: Zotero 10 PreferencePane API.
-// Based on Zotero 7/8 preference pane API documented at zotero.org/support/dev/zotero_7_for_developers
+// Zotero 7 preference pane API, documented at
+// zotero.org/support/dev/zotero_7_for_developers
 
 export function registerPreferences(rootURI: string) {
   if (typeof Zotero === "undefined" || !Zotero.PreferencePanes) {

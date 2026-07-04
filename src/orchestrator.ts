@@ -125,13 +125,11 @@ export class Orchestrator {
       try {
         return await attemptFetch();
       } catch (firstError) {
-        const isTransient =
-          firstError instanceof Error &&
-          (firstError.name === "AbortError" ||
-            firstError.message.includes("fetch") ||
-            firstError.message.includes("network") ||
-            firstError.message.includes("ECONNRESET"));
-        if (!isTransient) throw firstError;
+        // http.politeFetch already retries network errors on idempotent GETs;
+        // only timeouts (AbortError) are left for a single retry here.
+        const isTimeout =
+          firstError instanceof Error && firstError.name === "AbortError";
+        if (!isTimeout) throw firstError;
         try {
           return await attemptFetch();
         } catch {

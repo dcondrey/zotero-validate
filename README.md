@@ -3,7 +3,7 @@
 [![CI](https://github.com/dcondrey/zotero-validate/actions/workflows/ci.yml/badge.svg)](https://github.com/dcondrey/zotero-validate/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A Zotero 10 plugin that validates reference metadata against 16 scholarly sources to ensure your library is accurate. Cross-references each item against authoritative databases, flags discrepancies, suggests corrections, and optionally uses LLM-based semantic adjudication for ambiguous cases.
+A Zotero 7 plugin that validates reference metadata against scholarly sources to ensure your library is accurate. Cross-references each item against authoritative databases, flags discrepancies, suggests corrections, and optionally uses LLM-based semantic adjudication for ambiguous cases.
 
 ## Installation
 
@@ -69,7 +69,7 @@ The plugin will check for updates automatically.
 |--------|-------------|--------|--------|
 | [OpenCitations](https://opencitations.net/) | None | DOI | -- |
 | [Unpaywall](https://unpaywall.org/) | Email (reused) | DOI | -- |
-| [Internet Archive Scholar](https://scholar.archive.org/) | None | DOI, PMID, arXiv | Title |
+| [Internet Archive Scholar](https://scholar.archive.org/) | -- | -- | -- (disabled, no public JSON API) |
 | [Google Scholar](https://scholar.google.com/) | -- | -- | -- (stub, no public API) |
 
 **Tier 1** and **Tier 2** sources contribute to the verification threshold. The default minimum is 2 agreeing sources. Tier 3 sources provide supplementary metadata.

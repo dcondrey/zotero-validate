@@ -19,16 +19,6 @@ export class CrossrefAdapter implements SourceAdapter {
     return prefs["sources.crossref.enabled"] !== false;
   }
 
-  private getHeaders(prefs: PluginPrefs) {
-    const headers: Record<string, string> = {};
-    const email = prefs["sources.crossref.email"];
-    if (email) {
-      headers["User-Agent"] =
-        `ZoteroReferenceValidator/0.1.0 (mailto:${email})`;
-    }
-    return headers;
-  }
-
   async getById(
     identifier: Identifier,
     prefs: PluginPrefs = {},
@@ -39,7 +29,7 @@ export class CrossrefAdapter implements SourceAdapter {
       const timeout = prefs["behavior.timeout_sec"] || 10;
       const data = await fetchJSON(
         `https://api.crossref.org/works/${encodeURIComponent(identifier.doi)}`,
-        { headers: this.getHeaders(prefs) },
+        {},
         timeout,
       );
       if (!data?.message) return null;
@@ -63,11 +53,7 @@ export class CrossrefAdapter implements SourceAdapter {
         url.searchParams.append("query.author", query.authors[0]);
       }
       const timeout = prefs["behavior.timeout_sec"] || 10;
-      const data = await fetchJSON(
-        url.toString(),
-        { headers: this.getHeaders(prefs) },
-        timeout,
-      );
+      const data = await fetchJSON(url.toString(), {}, timeout);
       const items = safeArray(safeGet(data, "message", "items"));
       return items.map((item: any) => this.normalize(item, 0.85)).slice(0, 5);
     } catch (e) {
