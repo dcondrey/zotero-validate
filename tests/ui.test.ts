@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import {
   fieldToZoteroField,
   correctionValueFor,
+  mergeYearIntoDate,
   applyCorrections,
 } from "../src/ui";
 import { FieldDiff } from "../src/types";
@@ -10,10 +11,17 @@ function corr(field: string, sourceValue: any): FieldDiff {
   return { field, status: "mismatch", sourceValue };
 }
 
-function mockItem(opts: { rejectField?: string; failSave?: boolean } = {}) {
-  const fields: Record<string, string> = {};
+function mockItem(
+  opts: {
+    rejectField?: string;
+    failSave?: boolean;
+    initial?: Record<string, string>;
+  } = {},
+) {
+  const fields: Record<string, string> = { ...(opts.initial || {}) };
   return {
     fields,
+    getField: vi.fn((f: string) => fields[f] ?? ""),
     setField: vi.fn((f: string, v: string) => {
       if (opts.rejectField === f)
         throw new Error("field invalid for item type");
@@ -49,6 +57,26 @@ describe("correctionValueFor", () => {
   });
 });
 
+describe("mergeYearIntoDate", () => {
+  it("swaps the year and keeps month/day", () => {
+    expect(mergeYearIntoDate("2006-03-15", "2007")).toBe("2007-03-15");
+    expect(mergeYearIntoDate("March 15, 2006", "2007")).toBe("March 15, 2007");
+    expect(mergeYearIntoDate("Spring 2006", "2007")).toBe("Spring 2007");
+  });
+  it("handles a bare year", () => {
+    expect(mergeYearIntoDate("2006", "2007")).toBe("2007");
+  });
+  it("falls back to the year when the existing date has none", () => {
+    expect(mergeYearIntoDate("", "2007")).toBe("2007");
+    expect(mergeYearIntoDate("no year here", "2007")).toBe("2007");
+  });
+  it("replaces only the first year token", () => {
+    expect(mergeYearIntoDate("2006-2010 reprint", "2007")).toBe(
+      "2007-2010 reprint",
+    );
+  });
+});
+
 describe("applyCorrections", () => {
   it("applies all mappable fields with a single saveTx", async () => {
     const item = mockItem();
@@ -61,6 +89,13 @@ describe("applyCorrections", () => {
     expect(item.saveTx).toHaveBeenCalledTimes(1); // batched, not per-field
     expect(item.fields.title).toBe("Corrected Title");
     expect(item.fields.date).toBe("2007"); // year -> date, stringified
+  });
+
+  it("preserves an existing month/day when correcting only the year", async () => {
+    const item = mockItem({ initial: { date: "2006-03-15" } });
+    const n = await applyCorrections(item, [corr("year", 2007)]);
+    expect(n).toBe(1);
+    expect(item.fields.date).toBe("2007-03-15"); // month/day kept
   });
 
   it("skips unmappable fields and missing values without saving", async () => {

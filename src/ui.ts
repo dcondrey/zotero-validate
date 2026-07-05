@@ -36,6 +36,21 @@ export function correctionValueFor(correction: FieldDiff): string | null {
   return String(correction.sourceValue);
 }
 
+// Replace only the year within an existing date string, preserving any
+// month/day the user already had (e.g. "2006-03-15" + "2007" -> "2007-03-15").
+// Falls back to the bare year when the existing date carries no recognizable
+// year. A "year" correction means the year is wrong, not the whole date.
+export function mergeYearIntoDate(
+  existingDate: string,
+  sourceYear: string,
+): string {
+  const yearRe = /\b(1\d{3}|2\d{3})\b/;
+  if (existingDate && yearRe.test(existingDate)) {
+    return existingDate.replace(yearRe, sourceYear);
+  }
+  return sourceYear;
+}
+
 // Apply every applicable correction to an item with a single saveTx, so a
 // multi-field fix is one atomic write rather than one transaction per field.
 // A field the item type rejects is skipped without aborting the others.
@@ -47,8 +62,13 @@ export async function applyCorrections(
   let count = 0;
   for (const correction of corrections) {
     const zField = fieldToZoteroField(correction.field);
-    const value = correctionValueFor(correction);
-    if (!zField || value === null) continue;
+    const baseValue = correctionValueFor(correction);
+    if (!zField || baseValue === null) continue;
+    // A year correction updates only the year, keeping any existing month/day.
+    const value =
+      correction.field === "year"
+        ? mergeYearIntoDate(String(item.getField("date") || ""), baseValue)
+        : baseValue;
     try {
       item.setField(zField, value);
       count++;
