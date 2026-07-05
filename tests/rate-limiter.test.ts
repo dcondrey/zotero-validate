@@ -61,6 +61,11 @@ describe("TokenBucketRateLimiter", () => {
     expect(order).toEqual([1, 2]);
   });
 
+  it("grants a burst of one for a sub-1/second rate instead of hanging", async () => {
+    const rl = new TokenBucketRateLimiter(0.33, 1); // arXiv: one request per 3s
+    await expect(rl.acquire()).resolves.toBeUndefined();
+  });
+
   it("never lets the active count fall below zero", async () => {
     const rl = new TokenBucketRateLimiter(10, 5);
     rl.release();

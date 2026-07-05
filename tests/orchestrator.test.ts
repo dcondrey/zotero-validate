@@ -315,4 +315,78 @@ describe("Orchestrator", () => {
       expect(ocCall).toBeTruthy();
     });
   });
+
+  describe("early exit", () => {
+    it("skips an adapter still queued behind a shared limiter once VERIFIED", async () => {
+      global.IOUtils = {
+        exists: async () => false,
+        read: async () => new Uint8Array(),
+        write: async () => {},
+      };
+
+      const record = (source: string) => ({
+        identifiers: {},
+        title: "The Title",
+        authors: [{ family: "Smith", given: "", raw: "Smith" }],
+        year: 2007,
+        source,
+        sourceUrl: "",
+        confidence: 1,
+        rawResponse: {},
+      });
+      const fast = (id: string) => ({
+        id,
+        displayName: id,
+        tier: 1,
+        requiresCredential: false,
+        rateLimit: { perSecond: 50, concurrent: 10 },
+        isConfigured: () => true,
+        getById: async () => record(id),
+        search: async () => [],
+      });
+
+      // The slow adapter has concurrency 1 (a shared limiter). The first item's
+      // request holds the only slot and blocks on a gate; the second item's
+      // request queues behind it and, by the time it acquires, its item has
+      // already reached VERIFIED, so it is skipped rather than run.
+      let openGate: () => void = () => {};
+      const gate = new Promise<void>((r) => (openGate = r));
+      const cSlow = { n: 0 };
+      const slow = {
+        id: "slow",
+        displayName: "slow",
+        tier: 1,
+        requiresCredential: false,
+        rateLimit: { perSecond: 50, concurrent: 1 },
+        isConfigured: () => true,
+        getById: async () => {
+          cSlow.n++;
+          await gate;
+          return record("slow");
+        },
+        search: async () => [],
+      };
+
+      const orch = new Orchestrator(() => ({ "behavior.min_sources": 2 }));
+      (orch as any).adapters = [fast("fast1"), fast("fast2"), slow];
+
+      const mk = (doi: string) =>
+        mockItem({ DOI: doi, title: "The Title", date: "2007" }, [
+          { lastName: "Smith", fieldMode: 0 },
+        ]);
+      const both = Promise.all([
+        orch.validateItem(mk("10.1234/aaa"), true),
+        orch.validateItem(mk("10.1234/bbb"), true),
+      ]);
+
+      await new Promise((r) => setTimeout(r, 30));
+      openGate();
+      const [rA, rB] = await both;
+
+      expect(rA.status).toBe("VERIFIED");
+      expect(rB.status).toBe("VERIFIED");
+      expect(cSlow.n).toBe(1); // the second slow request was skipped, not run
+      await orch.shutdown();
+    });
+  });
 });

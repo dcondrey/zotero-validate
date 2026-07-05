@@ -20,7 +20,11 @@ import { OpenCitationsAdapter } from "./adapters/opencitations";
 import { UnpaywallAdapter } from "./adapters/unpaywall";
 import { OrcidAdapter } from "./adapters/orcid";
 import { compareRecords } from "./comparison";
-import { classify, ClassificationResult } from "./classifier";
+import {
+  classify,
+  countExactPrimaryMatches,
+  ClassificationResult,
+} from "./classifier";
 import { LLMClient } from "./llm";
 import { GlobalReferenceLibrary } from "./library";
 import { TokenBucketRateLimiter } from "./rate-limiter";
@@ -276,11 +280,19 @@ export class Orchestrator {
       .map((c: any) => c.lastName)
       .filter(Boolean);
 
+    const minSources = prefs["behavior.min_sources"] || 2;
+    // Once enough identifier-confirmed primary matches exist the item is
+    // VERIFIED and further sources cannot change that, so adapters still queued
+    // behind the shared rate limiters skip their request.
+    const earlyExit = { done: false };
+
     const queryAdapter = async (adapter: SourceAdapter, id: Identifier) => {
+      if (earlyExit.done) return;
       const limiter = this.getLimiter(adapter);
       await limiter.acquire();
 
       try {
+        if (earlyExit.done) return;
         const { record, idBased } = await this.deduplicatedFetch(
           adapter,
           id,
@@ -297,6 +309,9 @@ export class Orchestrator {
             diffs,
             hasStrongIdentifierMatch: idBased,
           });
+          if (countExactPrimaryMatches(diffsBySource) >= minSources) {
+            earlyExit.done = true;
+          }
         }
       } catch (e) {
         let message = "unknown error";
@@ -339,7 +354,7 @@ export class Orchestrator {
 
     const hasNewIds =
       Object.keys(enriched).length > Object.keys(identifier).length;
-    if (hasNewIds) {
+    if (!earlyExit.done && hasNewIds) {
       const missedAdapters = configuredAdapters.filter(
         (a) => !diffsBySource.has(a.id),
       );
@@ -350,7 +365,6 @@ export class Orchestrator {
       }
     }
 
-    const minSources = prefs["behavior.min_sources"] || 2;
     let result = classify(diffsBySource, minSources);
 
     if (adapterErrors.length > 0) {

@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { classify } from "../src/classifier";
+import {
+  classify,
+  isExactPrimaryMatch,
+  countExactPrimaryMatches,
+} from "../src/classifier";
 import { FieldDiff } from "../src/types";
 
 describe("classifier", () => {
@@ -128,5 +132,58 @@ describe("classifier", () => {
     const result = classify(diffs, 2);
     expect(result.status).toBe("FLAGGED");
     expect(result.corrections.length).toBeGreaterThan(0);
+  });
+});
+
+describe("isExactPrimaryMatch", () => {
+  const entry = (over: any) => ({
+    tier: 1,
+    hasStrongIdentifierMatch: true,
+    diffs: [] as FieldDiff[],
+    ...over,
+  });
+
+  it("is true for a tier-1/2 id-confirmed match with no critical conflict", () => {
+    expect(isExactPrimaryMatch(entry({ tier: 1 }))).toBe(true);
+    expect(isExactPrimaryMatch(entry({ tier: 2 }))).toBe(true);
+  });
+
+  it("is false without a strong identifier", () => {
+    expect(
+      isExactPrimaryMatch(entry({ hasStrongIdentifierMatch: false })),
+    ).toBe(false);
+  });
+
+  it("is false for a tier-3 source", () => {
+    expect(isExactPrimaryMatch(entry({ tier: 3 }))).toBe(false);
+  });
+
+  it("is false when a critical field conflicts", () => {
+    expect(
+      isExactPrimaryMatch(
+        entry({ diffs: [{ field: "year", status: "mismatch" } as FieldDiff] }),
+      ),
+    ).toBe(false);
+  });
+
+  it("ignores conflicts on non-critical fields", () => {
+    expect(
+      isExactPrimaryMatch(
+        entry({
+          diffs: [{ field: "volume", status: "mismatch" } as FieldDiff],
+        }),
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("countExactPrimaryMatches", () => {
+  it("counts only qualifying tier-1/2 id-confirmed sources", () => {
+    const m = new Map<string, any>();
+    m.set("a", { tier: 1, hasStrongIdentifierMatch: true, diffs: [] });
+    m.set("b", { tier: 2, hasStrongIdentifierMatch: true, diffs: [] });
+    m.set("c", { tier: 3, hasStrongIdentifierMatch: true, diffs: [] });
+    m.set("d", { tier: 1, hasStrongIdentifierMatch: false, diffs: [] });
+    expect(countExactPrimaryMatches(m)).toBe(2);
   });
 });

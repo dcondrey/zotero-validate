@@ -10,6 +10,7 @@ export class TokenBucketRateLimiter {
   private queue: (() => void)[] = [];
   private activeConnections = 0;
   private tokens: number;
+  private capacity: number;
   private lastRefill: number = Date.now();
   private isProcessing = false;
 
@@ -17,7 +18,11 @@ export class TokenBucketRateLimiter {
     private perSecond: number,
     private maxConcurrent: number,
   ) {
-    this.tokens = perSecond;
+    // Capacity must be at least one token; otherwise a sub-1/second rate (e.g.
+    // arXiv's one-per-3s) could never accumulate a whole token and acquire()
+    // would block forever. A burst of 1 is always allowed.
+    this.capacity = Math.max(1, perSecond);
+    this.tokens = this.capacity;
   }
 
   async acquire(): Promise<void> {
@@ -43,7 +48,7 @@ export class TokenBucketRateLimiter {
     const elapsed = (now - this.lastRefill) / 1000;
     if (elapsed > 0) {
       this.tokens = Math.min(
-        this.perSecond,
+        this.capacity,
         this.tokens + elapsed * this.perSecond,
       );
       this.lastRefill = now;

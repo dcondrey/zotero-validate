@@ -10,11 +10,37 @@ export interface ClassificationResult {
   diagnostic: string;
 }
 
+export interface SourceDiffs {
+  tier: number;
+  diffs: FieldDiff[];
+  hasStrongIdentifierMatch: boolean;
+}
+
+const CRITICAL_FIELDS = ["title", "authors", "year"];
+
+// An "exact" primary match: a tier-1/2 source confirmed by a strong identifier
+// with no conflict on a critical field. Reaching `minRequired` of these is what
+// makes an item VERIFIED, so the orchestrator uses the same predicate to know
+// when further source queries are provably unnecessary.
+export function isExactPrimaryMatch(entry: SourceDiffs): boolean {
+  if (entry.tier > 2 || !entry.hasStrongIdentifierMatch) return false;
+  return !entry.diffs.some(
+    (d) => d.status === "mismatch" && CRITICAL_FIELDS.includes(d.field),
+  );
+}
+
+export function countExactPrimaryMatches(
+  diffsBySource: Map<string, SourceDiffs>,
+): number {
+  let count = 0;
+  for (const entry of diffsBySource.values()) {
+    if (isExactPrimaryMatch(entry)) count++;
+  }
+  return count;
+}
+
 export function classify(
-  diffsBySource: Map<
-    string,
-    { tier: number; diffs: FieldDiff[]; hasStrongIdentifierMatch: boolean }
-  >,
+  diffsBySource: Map<string, SourceDiffs>,
   minRequired: number = 2,
 ): ClassificationResult {
   let exactPrimaryMatches = 0;
@@ -22,18 +48,14 @@ export function classify(
   let tier3Supports = 0;
   const allCorrections = new Map<string, FieldDiff>();
 
-  for (const {
-    tier,
-    diffs,
-    hasStrongIdentifierMatch,
-  } of diffsBySource.values()) {
-    const criticalFields = ["title", "authors", "year"];
+  for (const entry of diffsBySource.values()) {
+    const { tier, diffs, hasStrongIdentifierMatch } = entry;
     const conflicts = diffs.filter((d) => d.status === "mismatch");
     const missing = diffs.filter(
       (d) => d.status === "missing-zotero" || d.status === "missing-source",
     );
     const criticalConflicts = conflicts.filter((d) =>
-      criticalFields.includes(d.field),
+      CRITICAL_FIELDS.includes(d.field),
     );
 
     if (tier > 2) {
@@ -45,7 +67,7 @@ export function classify(
       continue;
     }
 
-    if (criticalConflicts.length === 0 && hasStrongIdentifierMatch) {
+    if (isExactPrimaryMatch(entry)) {
       exactPrimaryMatches++;
       for (const m of missing) {
         if (!allCorrections.has(m.field)) {
