@@ -19,7 +19,7 @@
     "@typescript-eslint/parser": "^8.0.0",
     "@xmldom/xmldom": "^0.9.10",
     "esbuild": "^0.28.1",
-    "eslint": "^9.0.0",
+    "eslint": "^9.39.5",
     "eslint-config-prettier": "^9.1.0",
     "prettier": "^3.3.0",
     "typescript": "^5.4.5",
