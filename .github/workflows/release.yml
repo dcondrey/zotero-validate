@@ -33,7 +33,7 @@ jobs:
           git commit -m "chore: update auto-update manifest for ${{ github.ref_name }}" || true
           git push origin HEAD:main
       - name: Generate Generic Attestations
-        uses: actions/attest@v4.1.1
+        uses: actions/attest@v4.2.2
         with:
           subject-path: "zotero-reference-validator.xpi"
       - name: Release
