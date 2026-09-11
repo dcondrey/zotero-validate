@@ -1,7 +1,7 @@
 <!-- repo-header:start -->
 <h3 align="center">Zotero Reference Validator</h3>
 
-<p align="center"><strong>Project documentation and resources for Zotero Validate.</strong></p>
+<p align="center"><strong>Zotero plugin that verifies every reference in your library against up to 14 scholarly databases, with tiered confidence, corrections and an optional LLM adjudicator.</strong></p>
 
 <p align="center">
   <a href="https://github.com/dcondrey/zotero-validate/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/dcondrey/zotero-validate/ci.yml?style=flat-square&labelColor=20232a&branch=main&label=CI" alt="CI"></a>
