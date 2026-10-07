@@ -1,18 +1,8 @@
-<!-- repo-header:start -->
-<h3 align="center">Zotero Reference Validator</h3>
+### Zotero Reference Validator
 
-<p align="center"><strong>Zotero plugin that verifies every reference in your library against up to 14 scholarly databases, with tiered confidence, corrections and an optional LLM adjudicator.</strong></p>
+Zotero plugin that verifies every reference in your library against up to 14 scholarly databases, with tiered confidence, corrections and an optional LLM adjudicator.
 
-<p align="center">
-  <a href="https://www.bestpractices.dev/projects/14409"><img src="https://www.bestpractices.dev/projects/14409/badge" alt="OpenSSF Best Practices"></a>
-  <a href="https://github.com/dcondrey/zotero-validate/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/dcondrey/zotero-validate/ci.yml?style=flat-square&labelColor=20232a&branch=main&label=CI" alt="CI"></a>
-  <a href="https://github.com/dcondrey/zotero-validate/blob/main/LICENSE"><img src="https://img.shields.io/github/license/dcondrey/zotero-validate?style=flat-square&labelColor=20232a&color=007ec6&label=license" alt="License"></a>
-  <a href="https://github.com/dcondrey/zotero-validate/blob/main/CODE_OF_CONDUCT.md"><img src="https://img.shields.io/badge/code%20of%20conduct-Contributor%20Covenant%202.1-6a4c93?style=flat-square&labelColor=20232a" alt="Code of Conduct"></a>
-  <a href="https://github.com/sponsors/dcondrey"><img src="https://img.shields.io/badge/GitHub%20Sponsors-Sponsor-EA4AAA?style=flat-square&labelColor=20232a" alt="GitHub Sponsors"></a>
-</p>
-<!-- repo-header:end -->
-
----
+[![CI](https://img.shields.io/github/actions/workflow/status/dcondrey/zotero-validate/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/dcondrey/zotero-validate/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/dcondrey/zotero-validate?style=flat-square)](https://github.com/dcondrey/zotero-validate/releases) [![License](https://img.shields.io/github/license/dcondrey/zotero-validate?style=flat-square)](https://github.com/dcondrey/zotero-validate/blob/main/LICENSE)
 
 ## Installation
 
